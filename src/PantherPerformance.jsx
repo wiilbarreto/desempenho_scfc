@@ -110,18 +110,30 @@ function mapCalendario(rows) {
 }
 
 function mapVideos(rows) {
-  return rows.filter(r => r["Título"] || r.Titulo).map((r, i) => ({
-    id: i + 1,
-    titulo: r["Título"] || r.Titulo || "",
-    tipo: r.Tipo || "clip_individual",
-    plat: r.Plataforma || r.Plat || "google_drive",
-    atleta: r.Atleta || "",
-    partida: r.Partida || "",
-    dur: r["Duração"] || r.Dur || "",
-    data: r.Data || "",
-    link: r.Link || r.URL || "",
-    linkAlt: r["Link Alt"] || r["Link Alternativo"] || "",
-  }));
+  return rows.filter(r => (r["Link Vídeo"] || r["Link Alternativo"] || r.Link || r.URL || "").trim()).map((r, i) => {
+    const desc = r["Adversário/Descrição"] || r["Título"] || r.Titulo || "";
+    const comp = r.Comp || "";
+    const rodada = r.Rodada || "";
+    const titulo = desc || [comp, rodada].filter(Boolean).join(" - ") || `Vídeo ${i + 1}`;
+    const tipoRaw = (r.Tipo || "").toLowerCase().trim();
+    const tipo = tipoRaw.includes("prelec") ? "prelecao"
+      : tipoRaw.includes("adv") ? "adversario"
+      : tipoRaw.includes("col") ? "coletivo"
+      : tipoRaw.includes("ind") ? "clip_individual"
+      : tipoRaw || "clip_individual";
+    return {
+      id: i + 1, titulo, tipo,
+      plat: r.Plataforma || r.Plat || "google_drive",
+      atleta: r.Atleta || "",
+      partida: desc,
+      dur: r["Duração"] || r.Dur || "",
+      data: r.Data || "",
+      comp, rodada,
+      link: r["Link Vídeo"] || r.Link || r.URL || "",
+      linkAlt: r["Link Alternativo"] || r["Link Alt"] || "",
+      responsavel: r["Responsável"] || "",
+    };
+  });
 }
 
 function useSheets() {
