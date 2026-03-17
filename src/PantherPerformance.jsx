@@ -50,7 +50,14 @@ async function fetchSheet(gid) {
   const url = `${SHEETS_CSV_BASE}&gid=${gid}`;
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok) throw new Error(`Sheet ${gid}: ${res.status}`);
-  return parseCSV(await res.text());
+  const text = await res.text();
+  if (text.trim().startsWith("<!") || text.trim().startsWith("<html")) {
+    console.warn(`[BFSA] Sheet ${gid} returned HTML instead of CSV. Check if the spreadsheet is published.`);
+    return [];
+  }
+  const rows = parseCSV(text);
+  if (rows.length === 0) console.warn(`[BFSA] Sheet ${gid}: 0 rows parsed. First 200 chars:`, text.substring(0, 200));
+  return rows;
 }
 
 function getField(r, ...keys) { for(const k of keys) { if(r[k]) return r[k]; } return ""; }
@@ -119,12 +126,16 @@ function useSheets() {
       const p = mapColetivo(colRows);
       const c = mapCalendario(calRows);
       const v = mapVideos(vidRows);
-      console.log("[BFSA Sync]", {colHeaders: colRows[0] && Object.keys(colRows[0]), calHeaders: calRows[0] && Object.keys(calRows[0]), pLen: p.length, cLen: c.length, vLen: v.length});
+      console.log("[BFSA Sync]", {rawRows:{col:colRows.length,cal:calRows.length,vid:vidRows.length}, mapped:{p:p.length,c:c.length,v:v.length}, colHeaders: colRows[0] && Object.keys(colRows[0]), calHeaders: calRows[0] && Object.keys(calRows[0])});
       if (p.length > 0) setLivePartidas(p);
       if (c.length > 0) setLiveCalendario(c);
       if (v.length > 0) setLiveVideos(v);
+      const total = p.length + c.length + v.length;
+      if (total === 0 && (colRows.length > 0 || calRows.length > 0)) {
+        setError("CSV carregado mas headers não bateram. Veja console (F12).");
+      }
       setLastSync(new Date().toLocaleTimeString("pt-BR"));
-    } catch (e) { setError(e.message); }
+    } catch (e) { console.error("[BFSA Sync Error]", e); setError(e.message); }
     finally { setLoading(false); }
   }, []);
 
@@ -935,7 +946,7 @@ export default function PantherPerformance() {
             <span style={{fontFamily:font,fontSize:9,color:C.gold,fontWeight:500}}>{sheets.loading?"Sincronizando...":"Sync Google Sheets"}</span>
           </button>
           {sheets.lastSync && <div style={{fontFamily:font,fontSize:8,color:C.green,textAlign:"center"}}>✓ {sheets.lastSync}</div>}
-          {sheets.error && <div style={{fontFamily:font,fontSize:8,color:C.red,textAlign:"center"}}>✗ Erro sync</div>}
+          {sheets.error && <div style={{fontFamily:font,fontSize:8,color:C.red,textAlign:"center",wordBreak:"break-all"}}>✗ {sheets.error}</div>}
           <div style={{fontFamily:font,fontSize:9,color:C.textDim,marginTop:4}}>BFSA · Dept. Análise</div>
           <div style={{fontFamily:font,fontSize:8,color:C.textDim,marginTop:1}}>{time.toLocaleDateString("pt-BR")} · {time.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
         </div>
