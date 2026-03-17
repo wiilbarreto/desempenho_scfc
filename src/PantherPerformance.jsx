@@ -24,19 +24,27 @@ function parseCSV(text) {
   const clean = text.replace(/^\uFEFF/, "");
   const lines = clean.split("\n").filter(l => l.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, "").replace(/\r/g, ""));
-  return lines.slice(1).map(line => {
+  // Auto-detect delimiter: semicolon (pt-BR), comma, or tab
+  const firstLine = lines[0];
+  const sep = firstLine.includes("\t") ? "\t" : firstLine.split(";").length > firstLine.split(",").length ? ";" : ",";
+  const splitLine = (line) => {
     const vals = [];
     let cur = "", inQ = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') { inQ = !inQ; continue; }
-      if (ch === "," && !inQ) { vals.push(cur.trim()); cur = ""; continue; }
+      if (ch === sep && !inQ) { vals.push(cur.trim().replace(/\r/g, "")); cur = ""; continue; }
       cur += ch;
     }
     vals.push(cur.trim().replace(/\r/g, ""));
+    return vals;
+  };
+  const headers = splitLine(firstLine).map(h => h.replace(/^"|"$/g, ""));
+  console.log("[BFSA parseCSV]", { sep: sep === "\t" ? "TAB" : sep, headers, lineCount: lines.length });
+  return lines.slice(1).map(line => {
+    const vals = splitLine(line);
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = (vals[i] || "").replace(/\r/g, ""); });
+    headers.forEach((h, i) => { obj[h] = vals[i] || ""; });
     return obj;
   });
 }
