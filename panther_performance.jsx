@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   BarChart, Bar, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid,
@@ -11,8 +11,100 @@ import {
   ArrowLeft, Play, FileText, UserCheck, Award, Crosshair, Flag,
   BookOpen, Send, Settings, ChevronDown, ChevronUp, Layers,
   Dumbbell, Circle, MapPin, Lock, Clipboard, Package, User,
-  CheckSquare, XCircle, Timer,
+  CheckSquare, XCircle, Timer, RefreshCw,
 } from "lucide-react";
+
+// ═══════════════════════════════════════════════
+// GOOGLE SHEETS CSV PARSER — Live data fetch
+// ═══════════════════════════════════════════════
+const SHEETS_CSV_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThRhCTfsLmX3ftpF-0m2UwZeDNBWjn5TxnDCBB3i5W82bh1dNW8m-sbORNTX5FBA/pub?output=csv";
+const GID = { cadastro:2058075615, coletivo:1880381548, individual:2098013514, videos:789793586, calendario:429987536 };
+
+function parseCSV(text) {
+  const lines = text.split("\n").filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map(line => {
+    const vals = [];
+    let cur = "", inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === "," && !inQ) { vals.push(cur.trim()); cur = ""; continue; }
+      cur += ch;
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = vals[i] || ""; });
+    return obj;
+  });
+}
+
+function ptNum(s) {
+  if (!s || s === "") return null;
+  return parseFloat(String(s).replace(",", "."));
+}
+
+async function fetchSheet(gid) {
+  const url = `${SHEETS_CSV_BASE}&gid=${gid}`;
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok) throw new Error(`Sheet ${gid}: ${res.status}`);
+  return parseCSV(await res.text());
+}
+
+function mapColetivo(rows) {
+  return rows.filter(r => r.Comp && r.Adversário).map((r, i) => ({
+    id: i + 1, data: r.Data || "", adv: r["Adversário"], comp: r.Comp, res: r.Res,
+    pl: r.Placar || "", mand: r.Local === "C", form: r.Sistema || "",
+    rod: parseInt((r.Rodada || "").replace("R", "")) || i + 1,
+    posJogoDone: true, videosDone: true, adversarioDone: true,
+    xg: ptNum(r.xG), xgC: ptNum(r.xGA), posse: ptNum(r["Posse%"]),
+    passes: ptNum(r.Passes), passCrt: ptNum(r["Pass Crt"]), passPct: ptNum(r["Pass%"]),
+    remates: ptNum(r.Remates), remAlvo: ptNum(r["Rem Alvo"]), remPct: ptNum(r["Rem%"]),
+    cruz: ptNum(r.Cruzamentos), cruzCrt: ptNum(r["Cruz Crt"]), cruzPct: ptNum(r["Cruz%"]),
+    duelos: null, duelPct: ptNum(r["Duelos%"]),
+    recup: ptNum(r.Recup), perdas: ptNum(r.Perdas), ppda: ptNum(r.PPDA),
+    intercep: ptNum(r.Intercep), ataqPos: ptNum(r["Ataq Pos"]), contraAtaq: ptNum(r["Contra-Ataq"]),
+    bpRem: ptNum(r["BP Rem"]), toquesArea: ptNum(r["Toques Área"]),
+    intensidade: ptNum(r.Intensidade), faltas: ptNum(r.Faltas),
+    cartAm: ptNum(r["Cart Am"]), cartVm: ptNum(r["Cart Vm"]),
+    gm: ptNum(r.GM), gs: ptNum(r.GS),
+  }));
+}
+
+function mapCalendario(rows) {
+  return rows.filter(r => r.Comp && r["Adversário"]).map(r => ({
+    comp: r.Comp, rodada: r.Rodada, data: r.Data, adv: r["Adversário"], local: r.Local,
+    adv_ok: r.ADV === "✓", pre_ok: r.PRE === "✓", pos_ok: r.POS === "✓",
+    dat_ok: r.DAT === "✓", wys_ok: r.WYS === "✓", tre_ok: r.TRE === "✓",
+    bsp_ok: r.BSP === "✓", ind_ok: r.IND === "✓",
+  }));
+}
+
+function useSheets() {
+  const [livePartidas, setLivePartidas] = useState(null);
+  const [liveCalendario, setLiveCalendario] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [lastSync, setLastSync] = useState(null);
+  const [error, setError] = useState(null);
+
+  const sync = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [colRows, calRows] = await Promise.all([
+        fetchSheet(GID.coletivo), fetchSheet(GID.calendario),
+      ]);
+      const p = mapColetivo(colRows);
+      const c = mapCalendario(calRows);
+      if (p.length > 0) setLivePartidas(p);
+      if (c.length > 0) setLiveCalendario(c);
+      setLastSync(new Date().toLocaleTimeString("pt-BR"));
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, []);
+
+  return { livePartidas, liveCalendario, loading, lastSync, error, sync };
+}
 
 // ═══════════════════════════════════════════════
 // DESIGN SYSTEM
@@ -77,15 +169,22 @@ const ATLETAS = [
   { id:40,nome:"Pedrinho",pos:"RB",num:0,status:"ativo",foto:"",videos:"",tend:"estavel",cat:"profissional" },
 ];
 
+// ═══════════════════════════════════════════════
+// DATA SOURCE — Google Sheets (published CSV)
+// ═══════════════════════════════════════════════
+const SHEETS_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThRhCTfsLmX3ftpF-0m2UwZeDNBWjn5TxnDCBB3i5W82bh1dNW8m-sbORNTX5FBA/pub?output=csv";
+const SHEET_GIDS = { cadastro:2058075615, coletivo:1880381548, individual:2098013514, videos:789793586, calendario:429987536 };
+
+// Fallback data — Wyscout Team Stats Paulistão 2026 (synced from Google Sheets 17/03)
 const PARTIDAS = [
-  { id:1,data:"16/02",adv:"Capivariano",comp:"Paulistão",res:"D",pl:"0-1",mand:true,form:"4-2-3-1",rod:8,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.75,xgC:1.32,posse:55.0,passes:386,passPct:82.4,remates:10,remAlvo:2,duelos:173,duelPct:52.0,recup:76,perdas:111,ppda:10.14 },
-  { id:2,data:"07/02",adv:"Guarani",comp:"Paulistão",res:"V",pl:"2-0",mand:false,form:"4-3-3",rod:7,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.88,xgC:0.57,posse:41.8,passes:274,passPct:73.4,remates:9,remAlvo:5,duelos:193,duelPct:42.5,recup:61,perdas:111,ppda:9.78 },
-  { id:3,data:"02/02",adv:"Palmeiras",comp:"Paulistão",res:"V",pl:"1-0",mand:true,form:"4-2-3-1",rod:6,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.92,xgC:1.29,posse:39.3,passes:263,passPct:78.0,remates:12,remAlvo:5,duelos:153,duelPct:49.7,recup:60,perdas:89,ppda:13.38 },
-  { id:4,data:"25/01",adv:"Novorizontino",comp:"Paulistão",res:"D",pl:"0-2",mand:false,form:"4-2-3-1",rod:5,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.31,xgC:1.14,posse:61.3,passes:549,passPct:83.4,remates:8,remAlvo:2,duelos:148,duelPct:47.3,recup:75,perdas:124,ppda:15.86 },
-  { id:5,data:"23/01",adv:"Primavera",comp:"Paulistão",res:"V",pl:"1-0",mand:true,form:"4-2-3-1",rod:4,posJogoDone:true,videosDone:true,adversarioDone:true,xg:1.87,xgC:0.87,posse:55.5,passes:358,passPct:78.2,remates:22,remAlvo:9,duelos:171,duelPct:43.3,recup:75,perdas:121,ppda:7.11 },
-  { id:6,data:"18/01",adv:"RB Bragantino",comp:"Paulistão",res:"D",pl:"0-5",mand:false,form:"4-2-3-1",rod:3,posJogoDone:true,videosDone:true,adversarioDone:true,xg:1.84,xgC:1.78,posse:50.7,passes:413,passPct:85.2,remates:13,remAlvo:4,duelos:185,duelPct:53.5,recup:81,perdas:110,ppda:14.5 },
-  { id:7,data:"15/01",adv:"Noroeste",comp:"Paulistão",res:"E",pl:"1-1",mand:true,form:"4-1-3-2",rod:2,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.84,xgC:1.68,posse:43.9,passes:225,passPct:60.4,remates:13,remAlvo:4,duelos:209,duelPct:44.0,recup:91,perdas:155,ppda:9.67 },
-  { id:8,data:"11/01",adv:"Velo Clube",comp:"Paulistão",res:"E",pl:"0-0",mand:false,form:"4-3-3",rod:1,posJogoDone:true,videosDone:false,adversarioDone:true,xg:0.31,xgC:0.67,posse:55.7,passes:352,passPct:85.2,remates:6,remAlvo:2,duelos:169,duelPct:47.9,recup:55,perdas:92,ppda:8.8 },
+  { id:1,data:"16/02",adv:"Capivariano",comp:"Paulistão",res:"D",pl:"0-1",mand:true,form:"4-2-3-1",rod:8,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.75,xgC:1.32,posse:55.03,passes:386,passCrt:318,passPct:82.38,remates:10,remAlvo:2,remPct:20,cruz:28,cruzCrt:13,cruzPct:46.43,duelos:173,duelPct:52.02,recup:76,perdas:111,ppda:10.14,intercep:40,ataqPos:30,contraAtaq:2,bpRem:3,toquesArea:25,intensidade:14.66,faltas:7,cartAm:1,cartVm:0,gm:0,gs:1 },
+  { id:2,data:"07/02",adv:"Guarani",comp:"Paulistão",res:"V",pl:"2-0",mand:false,form:"4-3-3",rod:7,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.88,xgC:0.57,posse:41.79,passes:274,passCrt:201,passPct:73.36,remates:9,remAlvo:5,remPct:55.56,cruz:14,cruzCrt:3,cruzPct:21.43,duelos:193,duelPct:42.49,recup:61,perdas:111,ppda:9.78,intercep:37,ataqPos:24,contraAtaq:1,bpRem:2,toquesArea:17,intensidade:14.44,faltas:23,cartAm:6,cartVm:0,gm:2,gs:0 },
+  { id:3,data:"02/02",adv:"Palmeiras",comp:"Paulistão",res:"V",pl:"1-0",mand:true,form:"4-2-3-1",rod:6,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.92,xgC:1.29,posse:39.25,passes:263,passCrt:205,passPct:77.95,remates:12,remAlvo:5,remPct:41.67,cruz:11,cruzCrt:3,cruzPct:27.27,duelos:153,duelPct:49.67,recup:60,perdas:89,ppda:13.38,intercep:31,ataqPos:16,contraAtaq:5,bpRem:5,toquesArea:10,intensidade:14.05,faltas:15,cartAm:7,cartVm:1,gm:1,gs:0 },
+  { id:4,data:"25/01",adv:"Novorizontino",comp:"Paulistão",res:"D",pl:"0-2",mand:false,form:"4-2-3-1",rod:5,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.31,xgC:1.14,posse:61.27,passes:549,passCrt:458,passPct:83.42,remates:8,remAlvo:2,remPct:25,cruz:9,cruzCrt:2,cruzPct:22.22,duelos:148,duelPct:47.3,recup:75,perdas:124,ppda:15.86,intercep:26,ataqPos:26,contraAtaq:0,bpRem:2,toquesArea:9,intensidade:17.98,faltas:8,cartAm:2,cartVm:0,gm:0,gs:2 },
+  { id:5,data:"23/01",adv:"Primavera SP",comp:"Paulistão",res:"V",pl:"1-0",mand:true,form:"4-2-3-1",rod:4,posJogoDone:true,videosDone:true,adversarioDone:true,xg:1.87,xgC:0.87,posse:55.45,passes:358,passCrt:280,passPct:78.21,remates:22,remAlvo:9,remPct:40.91,cruz:22,cruzCrt:7,cruzPct:31.82,duelos:171,duelPct:43.27,recup:75,perdas:121,ppda:7.11,intercep:47,ataqPos:29,contraAtaq:0,bpRem:9,toquesArea:25,intensidade:14.97,faltas:13,cartAm:2,cartVm:0,gm:1,gs:0 },
+  { id:6,data:"18/01",adv:"RB Bragantino",comp:"Paulistão",res:"D",pl:"0-5",mand:false,form:"4-2-3-1",rod:3,posJogoDone:true,videosDone:true,adversarioDone:true,xg:1.84,xgC:1.78,posse:50.65,passes:413,passCrt:352,passPct:85.23,remates:13,remAlvo:4,remPct:30.77,cruz:15,cruzCrt:6,cruzPct:40,duelos:185,duelPct:53.51,recup:81,perdas:110,ppda:14.5,intercep:28,ataqPos:24,contraAtaq:0,bpRem:4,toquesArea:15,intensidade:16.73,faltas:7,cartAm:1,cartVm:0,gm:0,gs:5 },
+  { id:7,data:"15/01",adv:"Noroeste",comp:"Paulistão",res:"E",pl:"1-1",mand:true,form:"4-1-3-2",rod:2,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.84,xgC:1.68,posse:43.9,passes:225,passCrt:136,passPct:60.44,remates:13,remAlvo:4,remPct:30.77,cruz:16,cruzCrt:3,cruzPct:18.75,duelos:209,duelPct:44.02,recup:91,perdas:155,ppda:9.67,intercep:40,ataqPos:24,contraAtaq:0,bpRem:6,toquesArea:15,intensidade:14.06,faltas:18,cartAm:1,cartVm:0,gm:1,gs:1 },
+  { id:8,data:"11/01",adv:"Velo Clube",comp:"Paulistão",res:"E",pl:"0-0",mand:false,form:"4-3-3",rod:1,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.31,xgC:0.67,posse:55.72,passes:352,passCrt:300,passPct:85.23,remates:6,remAlvo:2,remPct:33.33,cruz:10,cruzCrt:3,cruzPct:30,duelos:169,duelPct:47.93,recup:55,perdas:92,ppda:8.8,intercep:26,ataqPos:23,contraAtaq:0,bpRem:2,toquesArea:8,intensidade:15.82,faltas:15,cartAm:1,cartVm:1,gm:0,gs:0 },
 ];
 
 const PROX_ADV = { nome:"Fortaleza", data:"21/03", comp:"Série B R1", form:"4-3-3", status:"em_andamento", analista:"Semir", progresso:35 };
@@ -179,6 +278,28 @@ const PROTOCOLOS = [
   { cat: "Atraso", regra: "Auto-flagged no sistema. 2+ atrasos/mês = conversa formal" },
   { cat: "Confidencialidade", regra: "Materiais não saem sem autorização do Head Scout" },
   { cat: "Plataformas", regra: "Wyscout: tática + clips | InStat: dados físicos | Transfermarkt: mercado" },
+];
+
+const CALENDARIO_SERIE_B = [
+  {comp:"Série B",rodada:"R1",data:"21/03",adv:"Fortaleza",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R2",data:"01/04",adv:"América-MG",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R3",data:"05/04",adv:"São Bernardo",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R4",data:"10/04",adv:"Criciúma",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R5",data:"19/04",adv:"Atlético-GO",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R6",data:"26/04",adv:"Cuiabá",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R7",data:"03/05",adv:"Náutico",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R8",data:"10/05",adv:"Novorizontino",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R9",data:"17/05",adv:"Goiás",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R10",data:"24/05",adv:"Athletic",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R11",data:"31/05",adv:"Ponte Preta",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R12",data:"10/06",adv:"Vila Nova-GO",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R13",data:"14/06",adv:"Operário-PR",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R14",data:"21/06",adv:"Ceará",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R15",data:"28/06",adv:"CRB",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R16",data:"05/07",adv:"Avaí",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R17",data:"12/07",adv:"Sport",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R18",data:"19/07",adv:"Londrina",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
+  {comp:"Série B",rodada:"R19",data:"26/07",adv:"Juventude",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
 ];
 
 // ═══════════════════════════════════════════════
@@ -772,8 +893,15 @@ export default function PantherPerformance() {
   const [selId,setSelId]=useState(null);
   const [collapsed,setCollapsed]=useState({});
   const [time,setTime]=useState(new Date());
+  const sheets = useSheets();
 
   useEffect(()=>{const t=setInterval(()=>setTime(new Date()),60000);return()=>clearInterval(t)},[]);
+  // Auto-sync on mount
+  useEffect(()=>{sheets.sync()},[]);// eslint-disable-line
+
+  // Use live data if available, fallback to hardcoded
+  const partidas = sheets.livePartidas || PARTIDAS;
+  const calendario = sheets.liveCalendario || CALENDARIO_SERIE_B;
 
   const nav=(target,id)=>{
     if(target==="atleta-detail"){setSub("atleta-detail");setSelId(id)}
@@ -811,6 +939,7 @@ export default function PantherPerformance() {
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:${C.bg}}::-webkit-scrollbar-thumb{background:${C.border};border-radius:3px}::-webkit-scrollbar-thumb:hover{background:${C.gold}44}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
       `}</style>
 
       {/* SIDEBAR */}
@@ -843,7 +972,13 @@ export default function PantherPerformance() {
           ))}
         </div>
         <div style={{padding:"10px 14px",borderTop:`1px solid ${C.border}`}}>
-          <div style={{fontFamily:font,fontSize:9,color:C.textDim}}>BFSA · Dept. Análise</div>
+          <button onClick={sheets.sync} disabled={sheets.loading} style={{width:"100%",padding:"6px 8px",background:sheets.loading?C.bgInput:C.goldDim,border:`1px solid ${C.border}`,borderRadius:4,cursor:sheets.loading?"wait":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:6}}>
+            <RefreshCw size={10} color={C.gold} style={{animation:sheets.loading?"spin 1s linear infinite":"none"}}/>
+            <span style={{fontFamily:font,fontSize:9,color:C.gold}}>{sheets.loading?"Sincronizando...":"Sync Google Sheets"}</span>
+          </button>
+          {sheets.lastSync && <div style={{fontFamily:font,fontSize:8,color:C.green,textAlign:"center"}}>✓ {sheets.lastSync}</div>}
+          {sheets.error && <div style={{fontFamily:font,fontSize:8,color:C.red,textAlign:"center"}}>✗ Erro sync</div>}
+          <div style={{fontFamily:font,fontSize:9,color:C.textDim,marginTop:4}}>BFSA · Dept. Análise</div>
           <div style={{fontFamily:font,fontSize:8,color:C.textDim,marginTop:1}}>{time.toLocaleDateString("pt-BR")} · {time.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
         </div>
       </div>
