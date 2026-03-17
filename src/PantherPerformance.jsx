@@ -212,101 +212,7 @@ const ATLETAS = [
   { id:40,nome:"Pedrinho",pos:"RB",num:0,status:"ativo",foto:`${PB}PEDRINHO.png`,videos:"",tend:"estavel",cat:"profissional" },
 ];
 
-// ═══════════════════════════════════════════════
-// DATA SOURCE — Google Sheets (published CSV)
-// ═══════════════════════════════════════════════
-const SHEETS_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThRhCTfsLmX3ftpF-0m2UwZeDNBWjn5TxnDCBB3i5W82bh1dNW8m-sbORNTX5FBA/pub?output=csv";
-const SHEET_GIDS = { cadastro:2058075615, coletivo:1880381548, individual:2098013514, videos:789793586, calendario:429987536 };
-
-// Fallback data — Wyscout Team Stats Paulistão 2026 (synced from Google Sheets 17/03)
-const PARTIDAS = [
-  { id:1,data:"16/02",adv:"Capivariano",comp:"Paulistão",res:"D",pl:"0-1",mand:true,form:"4-2-3-1",rod:8,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.75,xgC:1.32,posse:55.03,passes:386,passCrt:318,passPct:82.38,remates:10,remAlvo:2,remPct:20,cruz:28,cruzCrt:13,cruzPct:46.43,duelos:173,duelPct:52.02,recup:76,perdas:111,ppda:10.14,intercep:40,ataqPos:30,contraAtaq:2,bpRem:3,toquesArea:25,intensidade:14.66,faltas:7,cartAm:1,cartVm:0,gm:0,gs:1 },
-  { id:2,data:"07/02",adv:"Guarani",comp:"Paulistão",res:"V",pl:"2-0",mand:false,form:"4-3-3",rod:7,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.88,xgC:0.57,posse:41.79,passes:274,passCrt:201,passPct:73.36,remates:9,remAlvo:5,remPct:55.56,cruz:14,cruzCrt:3,cruzPct:21.43,duelos:193,duelPct:42.49,recup:61,perdas:111,ppda:9.78,intercep:37,ataqPos:24,contraAtaq:1,bpRem:2,toquesArea:17,intensidade:14.44,faltas:23,cartAm:6,cartVm:0,gm:2,gs:0 },
-  { id:3,data:"02/02",adv:"Palmeiras",comp:"Paulistão",res:"V",pl:"1-0",mand:true,form:"4-2-3-1",rod:6,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.92,xgC:1.29,posse:39.25,passes:263,passCrt:205,passPct:77.95,remates:12,remAlvo:5,remPct:41.67,cruz:11,cruzCrt:3,cruzPct:27.27,duelos:153,duelPct:49.67,recup:60,perdas:89,ppda:13.38,intercep:31,ataqPos:16,contraAtaq:5,bpRem:5,toquesArea:10,intensidade:14.05,faltas:15,cartAm:7,cartVm:1,gm:1,gs:0 },
-  { id:4,data:"25/01",adv:"Novorizontino",comp:"Paulistão",res:"D",pl:"0-2",mand:false,form:"4-2-3-1",rod:5,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.31,xgC:1.14,posse:61.27,passes:549,passCrt:458,passPct:83.42,remates:8,remAlvo:2,remPct:25,cruz:9,cruzCrt:2,cruzPct:22.22,duelos:148,duelPct:47.3,recup:75,perdas:124,ppda:15.86,intercep:26,ataqPos:26,contraAtaq:0,bpRem:2,toquesArea:9,intensidade:17.98,faltas:8,cartAm:2,cartVm:0,gm:0,gs:2 },
-  { id:5,data:"23/01",adv:"Primavera SP",comp:"Paulistão",res:"V",pl:"1-0",mand:true,form:"4-2-3-1",rod:4,posJogoDone:true,videosDone:true,adversarioDone:true,xg:1.87,xgC:0.87,posse:55.45,passes:358,passCrt:280,passPct:78.21,remates:22,remAlvo:9,remPct:40.91,cruz:22,cruzCrt:7,cruzPct:31.82,duelos:171,duelPct:43.27,recup:75,perdas:121,ppda:7.11,intercep:47,ataqPos:29,contraAtaq:0,bpRem:9,toquesArea:25,intensidade:14.97,faltas:13,cartAm:2,cartVm:0,gm:1,gs:0 },
-  { id:6,data:"18/01",adv:"RB Bragantino",comp:"Paulistão",res:"D",pl:"0-5",mand:false,form:"4-2-3-1",rod:3,posJogoDone:true,videosDone:true,adversarioDone:true,xg:1.84,xgC:1.78,posse:50.65,passes:413,passCrt:352,passPct:85.23,remates:13,remAlvo:4,remPct:30.77,cruz:15,cruzCrt:6,cruzPct:40,duelos:185,duelPct:53.51,recup:81,perdas:110,ppda:14.5,intercep:28,ataqPos:24,contraAtaq:0,bpRem:4,toquesArea:15,intensidade:16.73,faltas:7,cartAm:1,cartVm:0,gm:0,gs:5 },
-  { id:7,data:"15/01",adv:"Noroeste",comp:"Paulistão",res:"E",pl:"1-1",mand:true,form:"4-1-3-2",rod:2,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.84,xgC:1.68,posse:43.9,passes:225,passCrt:136,passPct:60.44,remates:13,remAlvo:4,remPct:30.77,cruz:16,cruzCrt:3,cruzPct:18.75,duelos:209,duelPct:44.02,recup:91,perdas:155,ppda:9.67,intercep:40,ataqPos:24,contraAtaq:0,bpRem:6,toquesArea:15,intensidade:14.06,faltas:18,cartAm:1,cartVm:0,gm:1,gs:1 },
-  { id:8,data:"11/01",adv:"Velo Clube",comp:"Paulistão",res:"E",pl:"0-0",mand:false,form:"4-3-3",rod:1,posJogoDone:true,videosDone:true,adversarioDone:true,xg:0.31,xgC:0.67,posse:55.72,passes:352,passCrt:300,passPct:85.23,remates:6,remAlvo:2,remPct:33.33,cruz:10,cruzCrt:3,cruzPct:30,duelos:169,duelPct:47.93,recup:55,perdas:92,ppda:8.8,intercep:26,ataqPos:23,contraAtaq:0,bpRem:2,toquesArea:8,intensidade:15.82,faltas:15,cartAm:1,cartVm:1,gm:0,gs:0 },
-];
-
-const PROX_ADV = { nome:"Fortaleza", data:"21/03", comp:"Série B R1", form:"4-3-3", status:"em_andamento", analista:"Semir", progresso:35 };
-
-const ANALISTAS = [
-  { id:1,nome:"Semir",cargo:"Analista",foco:"Individual / Adversário",concluidas:32,total:38,atrasadas:1,qualidade:7.8,tempoMedio:145 },
-  { id:2,nome:"Cassio",cargo:"Analista",foco:"Individual / Pós-jogo",concluidas:35,total:40,atrasadas:0,qualidade:8.1,tempoMedio:130 },
-];
-
-
-
-const TREINOS = [
-  { id:1,data:"16/03",tipo:"tatico",intens:"alta",dur:90,obj:"Transição defensiva + compactação",destaque:"Leandro Maciel, Éricson",obs:"Foco pré-Série B" },
-  { id:2,data:"14/03",tipo:"tecnico",intens:"media",dur:75,obj:"Finalização + cruzamentos",destaque:"Kelvin Giacobe, Hygor Cléber",obs:"Boa produtividade" },
-  { id:3,data:"13/03",tipo:"fisico",intens:"maxima",dur:60,obj:"Resistência + sprints",destaque:"-",obs:"Todos aptos" },
-  { id:4,data:"12/03",tipo:"bola_parada",intens:"media",dur:45,obj:"Escanteios ofensivos e defensivos",destaque:"Gustavo Vilar (aéreo)",obs:"Corrigiu vulnerabilidade 1º pau" },
-  { id:5,data:"11/03",tipo:"jogo_treino",intens:"alta",dur:90,obj:"Simulação tática — sistema vs Fortaleza",destaque:"Rafael Gava, Wesley Pinheiro",obs:"Time A venceu 2x0" },
-  { id:6,data:"10/03",tipo:"tatico",intens:"media",dur:80,obj:"Saída de bola sob pressão + progressão",destaque:"Éverton Morelli",obs:"Revisão modelo de jogo" },
-  { id:7,data:"08/03",tipo:"regenerativo",intens:"baixa",dur:40,obj:"Recuperação ativa pós-Paulistão",destaque:"-",obs:"Apenas atletas com +6 jogos" },
-];
-
-const MODELO_JOGO = {
-  formacao: "4-2-3-1 / 4-3-3",
-  principios: [
-    { fase: "Ataque Organizado", desc: "Posse orientada com progressão pelos corredores. Laterais com overlap, pontas buscam 1v1. Meia-atacante entre linhas." },
-    { fase: "Transição Ofensiva", desc: "Verticalidade imediata. Primeiro passe progressivo. Pontas arrancam no espaço. Centroavante oferece profundidade." },
-    { fase: "Defesa Organizada", desc: "Bloco médio-alto. Pressing coordenado por triggers. Compactação entre linhas ≤35m. PPDA alvo: <11." },
-    { fase: "Transição Defensiva", desc: "Pressing imediato pós-perda (6s). Se não recuperar, recuar e compactar. Faltas táticas no meio." },
-  ],
-  ultimaRevisao: "10/03/2026",
-  versao: "2.2",
-};
-
-const BOLAS_PARADAS = {
-  ofensivas: [
-    { nome: "Escanteio curto + cruzamento 2º pau", sucesso: "3/12", gols: 1 },
-    { nome: "Falta frontal - batida direta", sucesso: "2/8", gols: 1 },
-    { nome: "Escanteio fechado 1º pau - desvio", sucesso: "4/16", gols: 0 },
-    { nome: "Lateral longo - zona de cabeceio", sucesso: "1/5", gols: 0 },
-  ],
-  defensivas: [
-    { ponto: "Zona do 1º pau vulnerável em escanteios", frequencia: "6 chances sofridas em 8 jogos — CORRIGIDO em treino 12/03" },
-    { ponto: "Falta central - barreira desalinhada", frequencia: "1 gol sofrido vs Noroeste (R2)" },
-    { ponto: "Segundas bolas em escanteio defensivo", frequencia: "3 chances sofridas — monitorar" },
-  ],
-};
-
-
-const PROTOCOLOS = [
-  { cat: "Nomenclatura", regra: "[DATA]_[TIPO]_[DETALHE] — Ex: 2026-03-21_adv_fortaleza.pptx" },
-  { cat: "Prazos", regra: "Adversário: D-2 | Pós-jogo: D+1 | Dados individuais: D+1 | Preleção: D-1" },
-  { cat: "Prioridades", regra: "Urgente: pré-jogo | Alta: pós-jogo | Média: desenvolvimento | Baixa: referência" },
-  { cat: "Aprovação", regra: "Todo material externo passa pelo Head Scout antes de sair do departamento" },
-  { cat: "Atraso", regra: "Auto-flagged no sistema. 2+ atrasos/mês = conversa formal" },
-  { cat: "Confidencialidade", regra: "Materiais não saem sem autorização do Head Scout" },
-  { cat: "Plataformas", regra: "Wyscout: tática + clips | InStat: dados físicos | Transfermarkt: mercado" },
-];
-
-const CALENDARIO_SERIE_B = [
-  {comp:"Série B",rodada:"R1",data:"21/03",adv:"Fortaleza",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R2",data:"01/04",adv:"América-MG",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R3",data:"05/04",adv:"São Bernardo",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R4",data:"10/04",adv:"Criciúma",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R5",data:"19/04",adv:"Atlético-GO",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R6",data:"26/04",adv:"Cuiabá",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R7",data:"03/05",adv:"Náutico",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R8",data:"10/05",adv:"Novorizontino",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R9",data:"17/05",adv:"Goiás",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R10",data:"24/05",adv:"Athletic",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R11",data:"31/05",adv:"Ponte Preta",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R12",data:"10/06",adv:"Vila Nova-GO",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R13",data:"14/06",adv:"Operário-PR",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R14",data:"21/06",adv:"Ceará",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R15",data:"28/06",adv:"CRB",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R16",data:"05/07",adv:"Avaí",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R17",data:"12/07",adv:"Sport",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R18",data:"19/07",adv:"Londrina",local:"F",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-  {comp:"Série B",rodada:"R19",data:"26/07",adv:"Juventude",local:"C",adv_ok:false,pre_ok:false,pos_ok:false,dat_ok:false,wys_ok:false,tre_ok:false,bsp_ok:false,ind_ok:false},
-];
+// Hardcoded data removed — all data now driven by Google Sheets.
 
 // ═══════════════════════════════════════════════
 // UI ATOMS
@@ -382,51 +288,50 @@ const Card = ({children,onClick,style:s}) => (
 // ═══════════════════════════════════════════════
 // PAGE: DASHBOARD
 // ═══════════════════════════════════════════════
-function DashboardPage({nav,tarefas=[],videos=[],calendario=CALENDARIO_SERIE_B}) {
-  const proxEscudo=(calendario.find(c=>c.adv===PROX_ADV.nome)||{}).escudo||"";
+function DashboardPage({nav,tarefas=[],videos=[],partidas=[],proxAdv}) {
   const ativos=ATLETAS.filter(a=>a.status==="ativo").length;
-  const vit=PARTIDAS.filter(p=>p.res==="V").length;
-  const emp=PARTIDAS.filter(p=>p.res==="E").length;
-  const der=PARTIDAS.filter(p=>p.res==="D").length;
+  const vit=partidas.filter(p=>p.res==="V").length;
+  const emp=partidas.filter(p=>p.res==="E").length;
+  const der=partidas.filter(p=>p.res==="D").length;
   const atrasadas=tarefas.filter(t=>t.status==="atrasada");
   const pendentes=tarefas.filter(t=>t.status!=="concluida");
-  const chartData=PARTIDAS.map(p=>({j:`vs ${p.adv}`,r:p.res==="V"?3:p.res==="E"?1:0})).reverse();
+  const chartData=partidas.map(p=>({j:`vs ${p.adv}`,r:p.res==="V"?3:p.res==="E"?1:0})).reverse();
   const subindo=ATLETAS.filter(a=>a.status==="ativo"&&a.tend==="subindo");
 
   return <div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:20}}>
       <StatCard label="Atletas Ativos" value={ativos} icon={Users}/>
-      <StatCard label="Jogos" value={PARTIDAS.length} sub={`${vit}V ${emp}E ${der}D`} icon={Shield} accent={C.green}/>
+      <StatCard label="Jogos" value={partidas.length} sub={`${vit}V ${emp}E ${der}D`} icon={Shield} accent={C.green}/>
       <StatCard label="Vídeos" value={videos.length} icon={Video} accent={C.blue}/>
       <StatCard label="Tarefas Pendentes" value={pendentes.length} icon={ClipboardList} accent={C.yellow}/>
       <StatCard label="Atrasadas" value={atrasadas.length} icon={AlertTriangle} accent={atrasadas.length>0?C.red:C.green}/>
     </div>
 
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-      <Card>
+      {proxAdv ? <Card>
         <SH title="Próximo Adversário"/>
         <div style={{display:"flex",alignItems:"center",gap:16}}>
           <div style={{width:56,height:56,borderRadius:"50%",background:`${C.red}22`,display:"flex",alignItems:"center",justifyContent:"center",border:`2px solid ${C.red}44`,overflow:"hidden"}}>
-            {proxEscudo?<img src={proxEscudo} alt={PROX_ADV.nome} style={{width:38,height:38,objectFit:"contain"}}/>:<Crosshair size={24} color={C.red}/>}
+            {proxAdv.escudo?<img src={proxAdv.escudo} alt={proxAdv.nome} style={{width:38,height:38,objectFit:"contain"}}/>:<Crosshair size={24} color={C.red}/>}
           </div>
           <div style={{flex:1}}>
-            <div style={{fontFamily:fontD,fontSize:22,color:C.text,fontWeight:700}}>{PROX_ADV.nome}</div>
-            <div style={{fontFamily:font,fontSize:11,color:C.textDim}}>{PROX_ADV.comp} · {PROX_ADV.data} · {PROX_ADV.form}</div>
+            <div style={{fontFamily:fontD,fontSize:22,color:C.text,fontWeight:700}}>{proxAdv.nome}</div>
+            <div style={{fontFamily:font,fontSize:11,color:C.textDim}}>{proxAdv.comp} · {proxAdv.data} · {proxAdv.form}</div>
             <div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
-              <ProgressBar pct={PROX_ADV.progresso} color={C.yellow}/>
-              <span style={{fontFamily:fontD,fontSize:14,color:C.yellow}}>{PROX_ADV.progresso}%</span>
+              <ProgressBar pct={proxAdv.progresso} color={C.yellow}/>
+              <span style={{fontFamily:fontD,fontSize:14,color:C.yellow}}>{proxAdv.progresso}%</span>
             </div>
           </div>
         </div>
-      </Card>
+      </Card> : <Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Sincronize com Google Sheets para ver o próximo adversário.</div></Card>}
       <Card>
         <SH title="Resultados Recentes"/>
-        <ResponsiveContainer width="100%" height={120}>
+        {chartData.length>0 ? <ResponsiveContainer width="100%" height={120}>
           <BarChart data={chartData} barSize={28}>
             <XAxis dataKey="j" tick={{fill:C.textDim,fontSize:9,fontFamily:font}} axisLine={false} tickLine={false}/>
             <Bar dataKey="r" radius={[3,3,0,0]}>{chartData.map((e,i)=><Cell key={i} fill={e.r===3?C.green:e.r===1?C.yellow:C.red}/>)}</Bar>
           </BarChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer> : <div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Nenhuma partida carregada.</div>}
       </Card>
     </div>
 
@@ -467,37 +372,93 @@ function DashboardPage({nav,tarefas=[],videos=[],calendario=CALENDARIO_SERIE_B})
 // PAGE: MODELO DE JOGO
 // ═══════════════════════════════════════════════
 function ModeloJogoPage() {
+  const fases = [
+    { fase:"Organização Ofensiva", sub:"Princípios Estruturais e Operacionais do Jogo Apoiado e Vertical", color:C.blue, icon:Zap,
+      desc:"A organização ofensiva representa o momento de maior controle sobre as variáveis do jogo. O time busca criar superioridades numéricas, posicionais e qualitativas através de movimentações coordenadas e tomadas de decisão baseadas em princípios claros.",
+      regras:[
+        {se:"O setor estiver bloqueado",entao:"Jogar para trás e mudar o corredor de ataque",pq:"Gerar novos ângulos de progressão e desorganizar o bloco defensivo adversário"},
+        {se:"Fomos pressionados",entao:"Buscar passes entrelinhas ou bolas nas costas da defesa",pq:"Explorar os espaços abertos pela pressão adversária, transformando agressividade defensiva em vulnerabilidade"},
+        {se:"Houver espaço disponível",entao:"Jogar curto em triângulos e losangos de apoio",pq:"Controlar o ritmo do jogo e promover conexões entre linhas, mantendo segurança posicional"},
+        {se:"Marcação zonal e baixa",entao:"Circular a bola lateralmente até abrir corredores internos",pq:"Atrair o adversário para um setor e explorar espaços gerados no lado oposto"},
+        {se:"Estivermos atacando em progressão",entao:"Manter equilíbrio posicional com cobertura defensiva",pq:"Evitar exposição a contra-ataques e sustentar compactação mesmo em fase ofensiva"},
+      ]},
+    { fase:"Transição Ofensiva", sub:"Atacar o Espaço e Transformar Defesa em Ataque", color:C.green, icon:TrendingUp,
+      desc:"A transição ofensiva é o momento de maior desequilíbrio do adversário. Quando recuperamos a bola, o time oponente está organizado para atacar, não para defender. Este momento golden de 3 a 5 segundos representa a maior oportunidade de criar situações claras de gol.",
+      regras:[
+        {se:"Recuperar a bola em zona de pressão",entao:"Passe vertical imediato para jogador avançado",pq:"Aproveitar o desequilíbrio defensivo adversário antes da reorganização"},
+        {se:"Recuperar sob pressão adversária",entao:"Mudar corredor para aliviar pressão",pq:"Manter posse e criar nova oportunidade de progressão"},
+        {se:"Identificar espaço nas costas",entao:"Ataque diagonal em profundidade",pq:"Explorar ruptura defensiva e criar situação de finalização"},
+        {se:"Sem opção de passe vertical",entao:"Condução individual 1x1 para atrair marcador",pq:"Criar desequilíbrio numérico e abrir espaços para companheiros"},
+        {se:"Adversário recomposto rapidamente",entao:"Circular bola e reorganizar ataque posicional",pq:"Evitar perda de bola e construir novo ataque estruturado"},
+      ]},
+    { fase:"Organização Defensiva", sub:"Estrutura Compacta e Gatilhos de Pressão Coletiva", color:C.yellow, icon:Shield,
+      desc:"A organização defensiva representa o momento de maior controle espacial, onde a equipe busca anular as vantagens ofensivas do adversário através de posicionamento inteligente, compactação entre linhas e gatilhos predefinidos de pressão. A defesa eficaz não é apenas reativa, mas proativa na criação de situações favoráveis para recuperação da bola.",
+      regras:[
+        {se:"Adversário sair jogando curto",entao:"Ativar gatilhos de pressão alta coordenada",pq:"Induzir erro na saída de bola e recuperar em zona de finalização"},
+        {se:"Zagueiro recuar para o goleiro",entao:"Pressionar o goleiro e fechar linhas de passe",pq:"Forçar bola longa ou erro na construção, recuperando superioridade"},
+        {se:"Adversário próximo à nossa área",entao:"Compactar e dominar duelos individuais",pq:"Aumentar densidade no último terço e proteger a meta"},
+        {se:"Jogo adversário pelo corredor central",entao:"Funilar e fechar espaços internos",pq:"Proteger o centro do campo e dificultar progressão vertical"},
+        {se:"Pressão for vencida pelo adversário",entao:"Reagrupar rapidamente atrás da bola",pq:"Manter densidade defensiva e evitar rupturas entre linhas"},
+      ]},
+    { fase:"Transição Defensiva", sub:"Mudança Rápida de Atitude e Recomposição Coletiva", color:C.red, icon:AlertTriangle,
+      desc:"A transição defensiva é o momento mais vulnerável do jogo, quando a equipe passa de uma organização ofensiva para uma postura defensiva. A velocidade de reação mental e física dos jogadores determina se recuperaremos a bola rapidamente ou se precisaremos nos reorganizar para defender de forma estruturada.",
+      regras:[
+        {se:"Perdermos a posse de bola",entao:"Pressionar imediatamente por até 8 segundos",pq:"Recuperar a bola no terço ofensivo aproveitando a desorganização momentânea adversária"},
+        {se:"Não recuperarmos rapidamente",entao:"Falta tática ou recompor defensivamente",pq:"Interromper o contra-ataque adversário ou reorganizar as linhas defensivas"},
+        {se:"Fora da zona de pressão",entao:"Formar funil direcionando para as laterais",pq:"Proteger o eixo central e reduzir ângulos de progressão adversária"},
+        {se:"A pressão for vencida",entao:"Reagrupar atrás da linha da bola",pq:"Reequilibrar as linhas defensivas e evitar espaços entre setores"},
+        {se:"Houver superioridade adversária",entao:"Temporizar e chamar cobertura",pq:"Ganhar tempo para que companheiros se reposicionem defensivamente"},
+      ]},
+  ];
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
       <div>
-        <div style={{fontFamily:font,fontSize:11,color:C.textDim}}>Formação base: <span style={{color:C.gold,fontWeight:700}}>{MODELO_JOGO.formacao}</span></div>
-        <div style={{fontFamily:font,fontSize:10,color:C.textDim,marginTop:2}}>Última revisão: {MODELO_JOGO.ultimaRevisao} · Versão {MODELO_JOGO.versao}</div>
+        <div style={{fontFamily:fontD,fontSize:20,color:C.text,fontWeight:700}}>Modelo Tencati — Estrutura Condicional</div>
+        <div style={{fontFamily:font,fontSize:11,color:C.textDim,marginTop:4}}>SE → ENTÃO → PORQUÊ · 4 Momentos do Jogo · 100+ Relações Condicionais</div>
       </div>
       <Badge color={C.green}>VIGENTE</Badge>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-      {MODELO_JOGO.principios.map((p,i)=>{
-        const colors=[C.green,C.gold,C.red,C.blue];
-        const icons=[Zap,TrendingUp,Shield,ArrowLeft];
-        const I=icons[i];
-        return <Card key={i}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-            <div style={{width:36,height:36,borderRadius:6,background:`${colors[i]}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><I size={16} color={colors[i]}/></div>
-            <div style={{fontFamily:fontD,fontSize:16,color:colors[i],fontWeight:700,textTransform:"uppercase"}}>{p.fase}</div>
+    <Card style={{marginBottom:16,padding:20}}>
+      <div style={{fontFamily:font,fontSize:13,color:C.textMid,lineHeight:1.7,maxWidth:900}}>
+        O Modelo Tencati é um framework pedagógico que transforma decisões individuais em inteligência coletiva através da criação de um idioma tático compartilhado. Cada relação SE → ENTÃO representa uma regra de interação sustentada por princípios claros, permitindo que os jogadores compreendam não apenas <em>o que</em> fazer, mas <em>por que</em> fazer.
+      </div>
+      <div style={{marginTop:16,padding:"12px 16px",borderLeft:`3px solid ${C.gold}`,background:C.bgInput,borderRadius:"0 6px 6px 0"}}>
+        <div style={{fontFamily:font,fontSize:12,color:C.text,fontStyle:"italic",fontWeight:600}}>"Treinar é criar contextos para que o coletivo aprenda a decidir."</div>
+      </div>
+    </Card>
+    {fases.map((f,fi)=>{
+      const I=f.icon;
+      return <Card key={fi} style={{marginBottom:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+          <div style={{width:36,height:36,borderRadius:8,background:`${f.color}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><I size={18} color={f.color}/></div>
+          <div>
+            <div style={{fontFamily:fontD,fontSize:16,color:f.color,fontWeight:700,textTransform:"uppercase"}}>{f.fase}</div>
+            <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>{f.sub}</div>
           </div>
-          <div style={{fontFamily:font,fontSize:12,color:C.textMid,lineHeight:"1.6"}}>{p.desc}</div>
-        </Card>;
-      })}
-    </div>
+        </div>
+        <div style={{fontFamily:font,fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:16}}>{f.desc}</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {f.regras.map((r,ri)=>(
+            <div key={ri} style={{padding:14,borderRadius:8,border:`1px solid ${f.color}33`,background:`${f.color}08`}}>
+              <div style={{fontFamily:font,fontSize:12,color:C.text,fontWeight:700,marginBottom:6}}>SE {r.se}</div>
+              <div style={{fontFamily:font,fontSize:11,color:C.text,marginBottom:4}}><span style={{fontWeight:700,color:f.color}}>ENTÃO:</span> {r.entao}</div>
+              <div style={{fontFamily:font,fontSize:10,color:C.textMid}}><span style={{fontWeight:700}}>PORQUÊ:</span> {r.pq}</div>
+            </div>
+          ))}
+        </div>
+      </Card>;
+    })}
+    <Card style={{padding:16}}>
+      <div style={{fontFamily:font,fontSize:10,color:C.textDim,textAlign:"center"}}>Comissão Técnica Tencati 3 · Este documento representa a base conceitual para desenvolvimento de toda estrutura de treinamento, análise de desempenho e comunicação tática da temporada.</div>
+    </Card>
   </div>;
 }
 
 // ═══════════════════════════════════════════════
 // PAGE: ADVERSÁRIO
 // ═══════════════════════════════════════════════
-function AdversarioPage({partidas=PARTIDAS,calendario=CALENDARIO_SERIE_B}) {
+function AdversarioPage({partidas=[],calendario=[],proxAdv}) {
   const escudoMap=Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv,x.escudo]));
-  const proxEscudo=escudoMap[PROX_ADV.nome]||"";
   const [checklist,setChecklist]=useState([]);
   const [editingIdx,setEditingIdx]=useState(null);
   const [editVal,setEditVal]=useState("");
@@ -509,22 +470,22 @@ function AdversarioPage({partidas=PARTIDAS,calendario=CALENDARIO_SERIE_B}) {
   const saveEdit=(i)=>{if(editVal.trim()){setChecklist(prev=>prev.map((item,idx)=>idx===i?{...item,label:editVal.trim()}:item));}setEditingIdx(null);};
   const doneCount=checklist.filter(c=>c.done).length;
   return <div>
-    <Card style={{marginBottom:16,backgroundImage:`linear-gradient(135deg,${C.redDim} 0%,transparent 50%)`}}>
+    {proxAdv && <Card style={{marginBottom:16,backgroundImage:`linear-gradient(135deg,${C.redDim} 0%,transparent 50%)`}}>
       <SH title="Em Andamento — Próximo Jogo"/>
       <div style={{display:"flex",alignItems:"center",gap:20}}>
         <div style={{width:64,height:64,borderRadius:"50%",background:`${C.red}22`,display:"flex",alignItems:"center",justifyContent:"center",border:`2px solid ${C.red}44`,overflow:"hidden"}}>
-          {proxEscudo?<img src={proxEscudo} alt={PROX_ADV.nome} style={{width:44,height:44,objectFit:"contain"}}/>:<Crosshair size={28} color={C.red}/>}
+          {proxAdv.escudo?<img src={proxAdv.escudo} alt={proxAdv.nome} style={{width:44,height:44,objectFit:"contain"}}/>:<Crosshair size={28} color={C.red}/>}
         </div>
         <div style={{flex:1}}>
-          <div style={{fontFamily:fontD,fontSize:26,color:C.text,fontWeight:700}}>{PROX_ADV.nome}</div>
-          <div style={{fontFamily:font,fontSize:12,color:C.textDim}}>{PROX_ADV.comp} · {PROX_ADV.data} · Formação esperada: {PROX_ADV.form}</div>
+          <div style={{fontFamily:fontD,fontSize:26,color:C.text,fontWeight:700}}>{proxAdv.nome}</div>
+          <div style={{fontFamily:font,fontSize:12,color:C.textDim}}>{proxAdv.comp} · {proxAdv.data} · Formação esperada: {proxAdv.form}</div>
           <div style={{marginTop:10,display:"flex",alignItems:"center",gap:10}}>
-            <ProgressBar pct={PROX_ADV.progresso} color={PROX_ADV.progresso>=80?C.green:C.yellow}/>
-            <span style={{fontFamily:fontD,fontSize:16,color:C.yellow}}>{PROX_ADV.progresso}%</span>
+            <ProgressBar pct={proxAdv.progresso} color={proxAdv.progresso>=80?C.green:C.yellow}/>
+            <span style={{fontFamily:fontD,fontSize:16,color:C.yellow}}>{proxAdv.progresso}%</span>
           </div>
         </div>
       </div>
-    </Card>
+    </Card>}
     <Card style={{marginBottom:16}}>
       <SH title="Checklist — Análise de Adversário" count={`${doneCount}/${checklist.length}`}/>
       <div style={{marginBottom:10}}>
@@ -573,20 +534,20 @@ function AdversarioPage({partidas=PARTIDAS,calendario=CALENDARIO_SERIE_B}) {
 // ═══════════════════════════════════════════════
 // PAGE: PRELEÇÃO
 // ═══════════════════════════════════════════════
-function PrelecaoPage({videos=[]}) {
+function PrelecaoPage({videos=[],proxAdv}) {
   const prelecoes=videos.filter(v=>v.tipo==="prelecao");
   return <div>
-    <Card style={{marginBottom:16,backgroundImage:`linear-gradient(135deg,${C.purpleDim} 0%,transparent 50%)`}}>
+    {proxAdv ? <Card style={{marginBottom:16,backgroundImage:`linear-gradient(135deg,${C.purpleDim} 0%,transparent 50%)`}}>
       <SH title="Próxima Preleção"/>
       <div style={{display:"flex",alignItems:"center",gap:16}}>
         <div style={{width:48,height:48,borderRadius:6,background:`${C.purple}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><FileText size={22} color={C.purple}/></div>
         <div style={{flex:1}}>
-          <div style={{fontFamily:fontD,fontSize:20,color:C.text}}>vs {PROX_ADV.nome} — D-1 (20/03)</div>
-          <div style={{fontFamily:font,fontSize:11,color:C.textDim}}>Depende da análise de adversário ({PROX_ADV.progresso}% concluída)</div>
+          <div style={{fontFamily:fontD,fontSize:20,color:C.text}}>vs {proxAdv.nome} — {proxAdv.data}</div>
+          <div style={{fontFamily:font,fontSize:11,color:C.textDim}}>Depende da análise de adversário ({proxAdv.progresso}% concluída)</div>
         </div>
-        <Badge color={PROX_ADV.progresso>=80?C.yellow:C.textDim}>{PROX_ADV.progresso>=80?"PRONTO P/ MONTAR":"AGUARDANDO ANÁLISE"}</Badge>
+        <Badge color={proxAdv.progresso>=80?C.yellow:C.textDim}>{proxAdv.progresso>=80?"PRONTO P/ MONTAR":"AGUARDANDO ANÁLISE"}</Badge>
       </div>
-    </Card>
+    </Card> : <Card style={{marginBottom:16}}><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Sincronize com Google Sheets para ver a próxima preleção.</div></Card>}
     <Card>
       <SH title="Preleções Anteriores" count={prelecoes.length}/>
       {prelecoes.map(v=>(
@@ -601,17 +562,18 @@ function PrelecaoPage({videos=[]}) {
 // ═══════════════════════════════════════════════
 // PAGE: PARTIDAS
 // ═══════════════════════════════════════════════
-function PartidasPage({videos=[]}) {
+function PartidasPage({videos=[],partidas=[]}) {
   return <div>
-    <SH title="Partidas + Pós-Jogo" count={PARTIDAS.length}/>
-    {PARTIDAS.map(p=>(
+    <SH title="Partidas + Pós-Jogo" count={partidas.length}/>
+    {partidas.length===0&&<Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Nenhuma partida carregada. Sincronize com Google Sheets.</div></Card>}
+    {partidas.map(p=>(
       <Card key={p.id} style={{marginBottom:8,display:"flex",alignItems:"center",gap:14}}>
         <div style={{width:50,textAlign:"center"}}><ResBadge r={p.res}/></div>
         <div style={{fontFamily:fontD,fontSize:22,color:C.text,fontWeight:700,width:55,textAlign:"center"}}>{p.pl}</div>
         <Escudo src={p.escudo} size={24}/>
         <div style={{flex:1}}>
           <div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:600}}>{p.mand?"Botafogo-SP":p.adv} vs {p.mand?p.adv:"Botafogo-SP"}</div>
-          <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>R{p.rod} · {p.data} · {p.form} · xG {p.xg.toFixed(2)} / xGA {p.xgC.toFixed(2)}</div>
+          <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>R{p.rod} · {p.data} · {p.form}{p.xg!=null?` · xG ${p.xg.toFixed(2)}`:""}{p.xgC!=null?` / xGA ${p.xgC.toFixed(2)}`:""}</div>
         </div>
         <div style={{display:"flex",gap:6}}>
           <Badge color={p.posJogoDone?C.green:C.yellow}>{p.posJogoDone?"PÓS ✓":"PENDENTE"}</Badge>
@@ -627,28 +589,7 @@ function PartidasPage({videos=[]}) {
 // ═══════════════════════════════════════════════
 function BolasParadasPage() {
   return <div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-      <Card>
-        <SH title="Ofensivas"/>
-        <table style={{width:"100%",borderCollapse:"collapse",fontFamily:font,fontSize:11}}>
-          <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>
-            {["Jogada","Taxa","Gols"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",color:C.textDim,fontSize:9,textTransform:"uppercase"}}>{h}</th>)}
-          </tr></thead>
-          <tbody>{BOLAS_PARADAS.ofensivas.map((b,i)=>(
-            <tr key={i}><td style={{padding:"8px",color:C.text}}>{b.nome}</td><td style={{padding:"8px",color:C.textMid}}>{b.sucesso}</td><td style={{padding:"8px",color:b.gols>0?C.green:C.textDim,fontWeight:b.gols>0?700:400,fontFamily:fontD,fontSize:16}}>{b.gols}</td></tr>
-          ))}</tbody>
-        </table>
-      </Card>
-      <Card>
-        <SH title="Vulnerabilidades Defensivas"/>
-        {BOLAS_PARADAS.defensivas.map((b,i)=>(
-          <div key={i} style={{padding:"10px",borderRadius:4,background:C.redDim,border:`1px solid ${C.red}22`,marginBottom:6}}>
-            <div style={{fontFamily:font,fontSize:12,color:C.text,fontWeight:600}}>{b.ponto}</div>
-            <div style={{fontFamily:font,fontSize:10,color:C.red,marginTop:2}}>{b.frequencia}</div>
-          </div>
-        ))}
-      </Card>
-    </div>
+    <Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Dados serão alimentados via Google Sheets.</div></Card>
   </div>;
 }
 
@@ -656,27 +597,8 @@ function BolasParadasPage() {
 // PAGE: TREINOS
 // ═══════════════════════════════════════════════
 function TreinosPage() {
-  const tipoColor={tatico:C.gold,tecnico:C.blue,fisico:C.green,bola_parada:C.purple,jogo_treino:C.cyan,regenerativo:C.yellow};
   return <div>
-    <SH title="Sessões de Treino" count={TREINOS.length}/>
-    {TREINOS.map(t=>(
-      <Card key={t.id} style={{marginBottom:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
-          <div style={{textAlign:"center",minWidth:50}}><div style={{fontFamily:fontD,fontSize:16,color:C.text}}>{t.data}</div></div>
-          <div style={{width:6,height:40,borderRadius:3,background:tipoColor[t.tipo]||C.textDim}}/>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <Badge color={tipoColor[t.tipo]}>{t.tipo.replace("_"," ")}</Badge>
-              <Badge color={t.intens==="maxima"?C.red:t.intens==="alta"?C.yellow:t.intens==="media"?C.blue:C.textDim}>{t.intens}</Badge>
-              <span style={{fontFamily:font,fontSize:10,color:C.textDim}}>{t.dur} min</span>
-            </div>
-            <div style={{fontFamily:font,fontSize:12,color:C.text,marginTop:4}}>{t.obj}</div>
-            {t.destaque!=="-"&&<div style={{fontFamily:font,fontSize:10,color:C.green,marginTop:2}}>Destaque: {t.destaque}</div>}
-            {t.obs&&<div style={{fontFamily:font,fontSize:10,color:C.textDim,marginTop:2}}>{t.obs}</div>}
-          </div>
-        </div>
-      </Card>
-    ))}
+    <Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Dados serão alimentados via Google Sheets.</div></Card>
   </div>;
 }
 
@@ -718,7 +640,7 @@ function AtletasPage({nav}) {
 // ═══════════════════════════════════════════════
 // PAGE: ATLETA DETAIL
 // ═══════════════════════════════════════════════
-function AtletaDetailPage({id,onBack,videos=[]}) {
+function AtletaDetailPage({id,onBack,videos=[],partidas=[]}) {
   const a=ATLETAS.find(x=>x.id===id)||ATLETAS[0];
   const aVideos=videos.filter(v=>v.atleta===a.nome);
   const posStats = {
@@ -760,22 +682,22 @@ function AtletaDetailPage({id,onBack,videos=[]}) {
       <div style={{fontFamily:font,fontSize:10,color:C.textDim,marginTop:6,fontStyle:"italic"}}>Dados individuais alimentados via planilha (aba Individual).</div>
     </Card>
 
-    <Card style={{marginBottom:14}}><SH title="Partidas Coletivas — Paulistão 2026" count={PARTIDAS.length}/>
-      <table style={{width:"100%",borderCollapse:"collapse",fontFamily:font,fontSize:11}}>
+    <Card style={{marginBottom:14}}><SH title="Partidas Coletivas" count={partidas.length}/>
+      {partidas.length>0 ? <table style={{width:"100%",borderCollapse:"collapse",fontFamily:font,fontSize:11}}>
         <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{["R","Adversário","Res","Placar","xG","xGA","Posse%","PPDA"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textDim,fontSize:9,textTransform:"uppercase",fontWeight:600}}>{h}</th>)}</tr></thead>
-        <tbody>{PARTIDAS.map((p,i)=>(
+        <tbody>{partidas.map((p,i)=>(
           <tr key={i} onMouseEnter={e=>e.currentTarget.style.background=C.bgCardHover} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
             <td style={{padding:"8px 10px",color:C.textDim}}>{p.rod}</td>
             <td style={{padding:"8px 10px",color:C.text}}><div style={{display:"flex",alignItems:"center",gap:6}}><Escudo src={p.escudo} size={16}/>{p.adv}</div></td>
             <td style={{padding:"8px 10px"}}><ResBadge r={p.res}/></td>
             <td style={{padding:"8px 10px",color:C.text,fontFamily:fontD,fontSize:14}}>{p.pl}</td>
-            <td style={{padding:"8px 10px",color:C.green}}>{p.xg.toFixed(2)}</td>
-            <td style={{padding:"8px 10px",color:C.red}}>{p.xgC.toFixed(2)}</td>
-            <td style={{padding:"8px 10px",color:C.text}}>{p.posse}%</td>
-            <td style={{padding:"8px 10px",color:C.textMid}}>{p.ppda.toFixed(1)}</td>
+            <td style={{padding:"8px 10px",color:C.green}}>{p.xg!=null?p.xg.toFixed(2):"—"}</td>
+            <td style={{padding:"8px 10px",color:C.red}}>{p.xgC!=null?p.xgC.toFixed(2):"—"}</td>
+            <td style={{padding:"8px 10px",color:C.text}}>{p.posse!=null?`${p.posse}%`:"—"}</td>
+            <td style={{padding:"8px 10px",color:C.textMid}}>{p.ppda!=null?p.ppda.toFixed(1):"—"}</td>
           </tr>
         ))}</tbody>
-      </table>
+      </table> : <div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Nenhuma partida carregada.</div>}
       <div style={{fontFamily:font,fontSize:10,color:C.textDim,marginTop:8,padding:"6px 10px",background:C.bgInput,borderRadius:4}}>
         Dados individuais por atleta alimentados via planilha Wyscout → API.
       </div>
@@ -850,31 +772,6 @@ function AddTarefaForm({onAdd,onCancel}) {
 function AnalistasPage({tarefas=[],addTarefa,updateTarefa,removeTarefa,showAddTarefa,setShowAddTarefa}) {
   const atrasadas=tarefas.filter(t=>t.status==="atrasada");
   return <div>
-    <div style={{display:"grid",gridTemplateColumns:`repeat(${ANALISTAS.length},1fr)`,gap:14,marginBottom:16}}>
-      {ANALISTAS.map(a=>{
-        const taxa=Math.round((a.concluidas/a.total)*100);
-        const bc=taxa>=85?C.green:taxa>=70?C.yellow:C.red;
-        return <Card key={a.id}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-            <div style={{width:40,height:40,borderRadius:"50%",background:`${C.gold}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><UserCheck size={18} color={C.gold}/></div>
-            <div><div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:700}}>{a.nome}</div><div style={{fontFamily:font,fontSize:9,color:C.textDim,textTransform:"uppercase"}}>{a.cargo} · {a.foco}</div></div>
-          </div>
-          <div style={{marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-              <span style={{fontFamily:font,fontSize:9,color:C.textDim,textTransform:"uppercase"}}>Taxa Conclusão</span>
-              <span style={{fontFamily:fontD,fontSize:13,color:bc,fontWeight:700}}>{taxa}%</span>
-            </div>
-            <ProgressBar pct={taxa} color={bc}/>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            <div style={{textAlign:"center",padding:"7px 0",borderRadius:4,background:C.bgInput}}><div style={{fontFamily:fontD,fontSize:16,color:C.text}}>{a.concluidas}/{a.total}</div><div style={{fontFamily:font,fontSize:8,color:C.textDim,textTransform:"uppercase"}}>Concluídas</div></div>
-            <div style={{textAlign:"center",padding:"7px 0",borderRadius:4,background:a.atrasadas>0?C.redDim:C.bgInput}}><div style={{fontFamily:fontD,fontSize:16,color:a.atrasadas>0?C.red:C.green}}>{a.atrasadas}</div><div style={{fontFamily:font,fontSize:8,color:C.textDim,textTransform:"uppercase"}}>Atrasadas</div></div>
-            <div style={{textAlign:"center",padding:"7px 0",borderRadius:4,background:C.bgInput}}><Nota v={a.qualidade}/><div style={{fontFamily:font,fontSize:8,color:C.textDim,textTransform:"uppercase"}}>Qualidade</div></div>
-            <div style={{textAlign:"center",padding:"7px 0",borderRadius:4,background:C.bgInput}}><div style={{fontFamily:fontD,fontSize:16,color:C.text}}>{a.tempoMedio}'</div><div style={{fontFamily:font,fontSize:8,color:C.textDim,textTransform:"uppercase"}}>Tempo Médio</div></div>
-          </div>
-        </Card>;
-      })}
-    </div>
     {atrasadas.length>0&&<Card style={{backgroundImage:`linear-gradient(135deg,${C.redDim} 0%,transparent 40%)`,border:`1px solid ${C.red}33`}}>
       <SH title="Tarefas Atrasadas" count={atrasadas.length}/>
       {atrasadas.map(t=>(
@@ -915,15 +812,7 @@ function AnalistasPage({tarefas=[],addTarefa,updateTarefa,removeTarefa,showAddTa
 // ═══════════════════════════════════════════════
 function ProtocolosPage() {
   return <div>
-    <Card>
-      <SH title="Protocolos do Departamento"/>
-      {PROTOCOLOS.map((p,i)=>(
-        <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:i<PROTOCOLOS.length-1?`1px solid ${C.border}08`:"none"}}>
-          <div style={{fontFamily:font,fontSize:11,color:C.gold,fontWeight:700,minWidth:120,textTransform:"uppercase"}}>{p.cat}</div>
-          <div style={{fontFamily:font,fontSize:12,color:C.textMid}}>{p.regra}</div>
-        </div>
-      ))}
-    </Card>
+    <Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Dados serão alimentados via Google Sheets.</div></Card>
   </div>;
 }
 
@@ -967,9 +856,15 @@ export default function PantherPerformance() {
   useEffect(()=>{const t=setInterval(()=>setTime(new Date()),60000);return()=>clearInterval(t)},[]);
   useEffect(()=>{sheets.sync()},[]);// eslint-disable-line
 
-  const partidas = sheets.livePartidas || PARTIDAS;
-  const calendario = sheets.liveCalendario || CALENDARIO_SERIE_B;
+  const partidas = sheets.livePartidas || [];
+  const calendario = sheets.liveCalendario || [];
   const videos = sheets.liveVideos || [];
+
+  const proxAdv = calendario.length > 0 ? (() => {
+    const pending = calendario.find(c => !c.adv_ok);
+    const match = pending || calendario[0];
+    return { nome: match.adv, data: match.data, comp: `${match.comp} ${match.rodada}`, form: "", escudo: match.escudo || "", progresso: match.adv_ok ? 100 : 0 };
+  })() : null;
 
   const addTarefa=(t)=>{setTarefas(prev=>[...prev,{...t,id:Date.now()}]);setShowAddTarefa(false)};
   const updateTarefa=(id,updates)=>setTarefas(prev=>prev.map(t=>t.id===id?{...t,...updates}:t));
@@ -983,20 +878,20 @@ export default function PantherPerformance() {
   const atrasadas=tarefas.filter(t=>t.status==="atrasada").length;
 
   const renderPage=()=>{
-    if(sub==="atleta-detail") return <AtletaDetailPage id={selId} onBack={goBack} videos={videos}/>;
+    if(sub==="atleta-detail") return <AtletaDetailPage id={selId} onBack={goBack} videos={videos} partidas={partidas}/>;
     switch(page){
-      case "dashboard": return <DashboardPage nav={nav} tarefas={tarefas} videos={videos} calendario={calendario}/>;
+      case "dashboard": return <DashboardPage nav={nav} tarefas={tarefas} videos={videos} partidas={partidas} proxAdv={proxAdv}/>;
       case "modelo-jogo": return <ModeloJogoPage/>;
-      case "adversario": return <AdversarioPage partidas={partidas} calendario={calendario}/>;
-      case "prelecao": return <PrelecaoPage videos={videos}/>;
-      case "partidas": return <PartidasPage videos={videos}/>;
+      case "adversario": return <AdversarioPage partidas={partidas} calendario={calendario} proxAdv={proxAdv}/>;
+      case "prelecao": return <PrelecaoPage videos={videos} proxAdv={proxAdv}/>;
+      case "partidas": return <PartidasPage videos={videos} partidas={partidas}/>;
       case "bolas-paradas": return <BolasParadasPage/>;
       case "treinos": return <TreinosPage/>;
       case "atletas": return <AtletasPage nav={nav}/>;
       case "videos": return <VideosPage videos={videos}/>;
       case "analistas": return <AnalistasPage tarefas={tarefas} addTarefa={addTarefa} updateTarefa={updateTarefa} removeTarefa={removeTarefa} showAddTarefa={showAddTarefa} setShowAddTarefa={setShowAddTarefa}/>;
       case "protocolos": return <ProtocolosPage/>;
-      default: return <DashboardPage nav={nav} tarefas={tarefas} videos={videos}/>;
+      default: return <DashboardPage nav={nav} tarefas={tarefas} videos={videos} partidas={partidas} proxAdv={proxAdv}/>;
     }
   };
 
@@ -1037,7 +932,7 @@ export default function PantherPerformance() {
                   <I size={14}/>
                   <span style={{flex:1}}>{item.label}</span>
                   {item.id==="analistas"&&atrasadas>0&&<span style={{width:16,height:16,borderRadius:"50%",background:C.red,color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{atrasadas}</span>}
-                  {item.id==="adversario"&&PROX_ADV.progresso<100&&<span style={{width:16,height:16,borderRadius:"50%",background:C.yellow,color:C.bg,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>!</span>}
+                  {item.id==="adversario"&&proxAdv&&proxAdv.progresso<100&&<span style={{width:16,height:16,borderRadius:"50%",background:C.yellow,color:C.bg,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>!</span>}
                 </button>;
               })}
             </div>
