@@ -427,7 +427,7 @@ function DashboardPage({nav,tarefas=[],videos=[]}) {
         <SH title="Tendência Positiva" count={subindo.length}/>
         {subindo.map((a,i)=>(
           <div key={a.id} onClick={()=>nav("atleta-detail",a.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderRadius:4,cursor:"pointer",background:i===0?C.goldDim:"transparent",border:i===0?`1px solid ${C.gold}33`:"1px solid transparent",marginBottom:2}} onMouseEnter={e=>{if(i!==0)e.currentTarget.style.background=C.bgCardHover}} onMouseLeave={e=>{if(i!==0)e.currentTarget.style.background="transparent"}}>
-            <div style={{width:28,height:28,borderRadius:"50%",background:`${C.gold}22`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:fontD,fontSize:12,color:C.gold}}>{a.num||"—"}</div>
+            {a.foto?<img src={a.foto} alt={a.nome} style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",border:`2px solid ${C.gold}33`}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:`${C.gold}22`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:fontD,fontSize:12,color:C.gold}}>{a.num||"—"}</div>}
             <div style={{flex:1}}>
               <div style={{fontFamily:font,fontSize:12,color:C.text,fontWeight:600}}>{a.nome}</div>
               <div style={{fontFamily:font,fontSize:9,color:C.textDim}}>{a.pos}</div>
@@ -1033,7 +1033,7 @@ export default function PantherPerformance() {
       <div style={{marginLeft:210,flex:1,padding:"16px 20px",minHeight:"100vh"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,paddingBottom:12,borderBottom:`1px solid ${C.border}`}}>
           <h1 style={{fontFamily:fontD,fontSize:22,fontWeight:700,color:C.text,textTransform:"uppercase",letterSpacing:"0.06em"}}>{pageTitle}</h1>
-          <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>Head Scout: Caio Felipe</div>
+          <div style={{fontFamily:font,fontSize:10,color:C.textDim}}></div>
         </div>
         {renderPage()}
       </div>
