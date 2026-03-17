@@ -21,9 +21,10 @@ const SHEETS_CSV_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThRhCT
 const GID = { cadastro:2058075615, coletivo:1880381548, individual:2098013514, videos:789793586, calendario:429987536 };
 
 function parseCSV(text) {
-  const lines = text.split("\n").filter(l => l.trim());
+  const clean = text.replace(/^\uFEFF/, "");
+  const lines = clean.split("\n").filter(l => l.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, "").replace(/\r/g, ""));
   return lines.slice(1).map(line => {
     const vals = [];
     let cur = "", inQ = false;
@@ -33,9 +34,9 @@ function parseCSV(text) {
       if (ch === "," && !inQ) { vals.push(cur.trim()); cur = ""; continue; }
       cur += ch;
     }
-    vals.push(cur.trim());
+    vals.push(cur.trim().replace(/\r/g, ""));
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = vals[i] || ""; });
+    headers.forEach((h, i) => { obj[h] = (vals[i] || "").replace(/\r/g, ""); });
     return obj;
   });
 }
@@ -52,9 +53,12 @@ async function fetchSheet(gid) {
   return parseCSV(await res.text());
 }
 
+function getField(r, ...keys) { for(const k of keys) { if(r[k]) return r[k]; } return ""; }
+function getAdv(r) { return getField(r, "Adversário", "Adversario", "adversário", "adversario"); }
+function getComp(r) { return getField(r, "Comp", "comp", "Competição", "competição", "Competicao"); }
 function mapColetivo(rows) {
-  return rows.filter(r => r.Comp && r.Adversário).map((r, i) => ({
-    id: i + 1, data: r.Data || "", adv: r["Adversário"], comp: r.Comp, res: r.Res,
+  return rows.filter(r => getComp(r) && getAdv(r)).map((r, i) => ({
+    id: i + 1, data: r.Data || "", adv: getAdv(r), comp: getComp(r), res: r.Res,
     pl: r.Placar || "", mand: r.Local === "C", form: r.Sistema || "",
     rod: parseInt((r.Rodada || "").replace("R", "")) || i + 1,
     escudo: r.escudo || r.Escudo || "",
@@ -74,8 +78,8 @@ function mapColetivo(rows) {
 }
 
 function mapCalendario(rows) {
-  return rows.filter(r => r.Comp && r["Adversário"]).map(r => ({
-    comp: r.Comp, rodada: r.Rodada, data: r.Data, adv: r["Adversário"], local: r.Local,
+  return rows.filter(r => getComp(r) && getAdv(r)).map(r => ({
+    comp: getComp(r), rodada: r.Rodada || r.rodada || "", data: r.Data || r.data || "", adv: getAdv(r), local: r.Local || r.local || "",
     escudo: r.escudo || r.Escudo || "",
     adv_ok: r.ADV === "✓", pre_ok: r.PRE === "✓", pos_ok: r.POS === "✓",
     dat_ok: r.DAT === "✓", wys_ok: r.WYS === "✓", tre_ok: r.TRE === "✓",
@@ -115,6 +119,7 @@ function useSheets() {
       const p = mapColetivo(colRows);
       const c = mapCalendario(calRows);
       const v = mapVideos(vidRows);
+      console.log("[BFSA Sync]", {colHeaders: colRows[0] && Object.keys(colRows[0]), calHeaders: calRows[0] && Object.keys(calRows[0]), pLen: p.length, cLen: c.length, vLen: v.length});
       if (p.length > 0) setLivePartidas(p);
       if (c.length > 0) setLiveCalendario(c);
       if (v.length > 0) setLiveVideos(v);
@@ -373,84 +378,66 @@ function DashboardPage({nav,tarefas=[],videos=[],partidas=[],proxAdv}) {
 // ═══════════════════════════════════════════════
 function ModeloJogoPage() {
   const fases = [
-    { fase:"Organização Ofensiva", sub:"Princípios Estruturais e Operacionais do Jogo Apoiado e Vertical", color:C.blue, icon:Zap,
-      desc:"A organização ofensiva representa o momento de maior controle sobre as variáveis do jogo. O time busca criar superioridades numéricas, posicionais e qualitativas através de movimentações coordenadas e tomadas de decisão baseadas em princípios claros.",
+    { fase:"Organização Ofensiva", color:C.blue, icon:Zap,
       regras:[
-        {se:"O setor estiver bloqueado",entao:"Jogar para trás e mudar o corredor de ataque",pq:"Gerar novos ângulos de progressão e desorganizar o bloco defensivo adversário"},
-        {se:"Fomos pressionados",entao:"Buscar passes entrelinhas ou bolas nas costas da defesa",pq:"Explorar os espaços abertos pela pressão adversária, transformando agressividade defensiva em vulnerabilidade"},
-        {se:"Houver espaço disponível",entao:"Jogar curto em triângulos e losangos de apoio",pq:"Controlar o ritmo do jogo e promover conexões entre linhas, mantendo segurança posicional"},
-        {se:"Marcação zonal e baixa",entao:"Circular a bola lateralmente até abrir corredores internos",pq:"Atrair o adversário para um setor e explorar espaços gerados no lado oposto"},
-        {se:"Estivermos atacando em progressão",entao:"Manter equilíbrio posicional com cobertura defensiva",pq:"Evitar exposição a contra-ataques e sustentar compactação mesmo em fase ofensiva"},
+        {se:"Setor bloqueado",entao:"Jogar para trás e mudar corredor",pq:"Criar novos ângulos e desorganizar o bloco"},
+        {se:"Sob pressão",entao:"Entrelinhas ou bola nas costas",pq:"Usar a pressão contra o adversário"},
+        {se:"Espaço disponível",entao:"Triangulações e losangos de apoio",pq:"Manter ritmo e conexão entre linhas"},
+        {se:"Marcação zonal baixa",entao:"Circular até abrir corredor interno",pq:"Atrair e explorar o lado oposto"},
+        {se:"Em progressão ofensiva",entao:"Cobertura defensiva preventiva",pq:"Evitar exposição a contra-ataques"},
       ]},
-    { fase:"Transição Ofensiva", sub:"Atacar o Espaço e Transformar Defesa em Ataque", color:C.green, icon:TrendingUp,
-      desc:"A transição ofensiva é o momento de maior desequilíbrio do adversário. Quando recuperamos a bola, o time oponente está organizado para atacar, não para defender. Este momento golden de 3 a 5 segundos representa a maior oportunidade de criar situações claras de gol.",
+    { fase:"Transição Ofensiva", color:C.green, icon:TrendingUp,
       regras:[
-        {se:"Recuperar a bola em zona de pressão",entao:"Passe vertical imediato para jogador avançado",pq:"Aproveitar o desequilíbrio defensivo adversário antes da reorganização"},
-        {se:"Recuperar sob pressão adversária",entao:"Mudar corredor para aliviar pressão",pq:"Manter posse e criar nova oportunidade de progressão"},
-        {se:"Identificar espaço nas costas",entao:"Ataque diagonal em profundidade",pq:"Explorar ruptura defensiva e criar situação de finalização"},
-        {se:"Sem opção de passe vertical",entao:"Condução individual 1x1 para atrair marcador",pq:"Criar desequilíbrio numérico e abrir espaços para companheiros"},
-        {se:"Adversário recomposto rapidamente",entao:"Circular bola e reorganizar ataque posicional",pq:"Evitar perda de bola e construir novo ataque estruturado"},
+        {se:"Recuperação em zona de pressão",entao:"Passe vertical imediato",pq:"Explorar desequilíbrio antes da recomposição"},
+        {se:"Recuperação sob pressão",entao:"Mudar corredor",pq:"Aliviar e criar nova linha de progressão"},
+        {se:"Espaço nas costas",entao:"Diagonal em profundidade",pq:"Atacar a ruptura defensiva"},
+        {se:"Sem opção vertical",entao:"Condução 1x1 para atrair",pq:"Abrir espaços para companheiros"},
+        {se:"Adversário recomposto",entao:"Circular e reorganizar ataque posicional",pq:"Não forçar — construir com paciência"},
       ]},
-    { fase:"Organização Defensiva", sub:"Estrutura Compacta e Gatilhos de Pressão Coletiva", color:C.yellow, icon:Shield,
-      desc:"A organização defensiva representa o momento de maior controle espacial, onde a equipe busca anular as vantagens ofensivas do adversário através de posicionamento inteligente, compactação entre linhas e gatilhos predefinidos de pressão. A defesa eficaz não é apenas reativa, mas proativa na criação de situações favoráveis para recuperação da bola.",
+    { fase:"Organização Defensiva", color:C.yellow, icon:Shield,
       regras:[
-        {se:"Adversário sair jogando curto",entao:"Ativar gatilhos de pressão alta coordenada",pq:"Induzir erro na saída de bola e recuperar em zona de finalização"},
-        {se:"Zagueiro recuar para o goleiro",entao:"Pressionar o goleiro e fechar linhas de passe",pq:"Forçar bola longa ou erro na construção, recuperando superioridade"},
-        {se:"Adversário próximo à nossa área",entao:"Compactar e dominar duelos individuais",pq:"Aumentar densidade no último terço e proteger a meta"},
-        {se:"Jogo adversário pelo corredor central",entao:"Funilar e fechar espaços internos",pq:"Proteger o centro do campo e dificultar progressão vertical"},
-        {se:"Pressão for vencida pelo adversário",entao:"Reagrupar rapidamente atrás da bola",pq:"Manter densidade defensiva e evitar rupturas entre linhas"},
+        {se:"Adversário sai jogando curto",entao:"Pressão alta coordenada",pq:"Induzir erro e recuperar em zona perigosa"},
+        {se:"Zagueiro recua pro goleiro",entao:"Pressionar goleiro e fechar linhas",pq:"Forçar bola longa ou erro"},
+        {se:"Adversário perto da área",entao:"Compactar e dominar duelos",pq:"Densidade máxima no último terço"},
+        {se:"Jogo pelo corredor central",entao:"Funilar e fechar espaços internos",pq:"Proteger eixo central"},
+        {se:"Pressão vencida",entao:"Reagrupar atrás da bola",pq:"Evitar rupturas entre linhas"},
       ]},
-    { fase:"Transição Defensiva", sub:"Mudança Rápida de Atitude e Recomposição Coletiva", color:C.red, icon:AlertTriangle,
-      desc:"A transição defensiva é o momento mais vulnerável do jogo, quando a equipe passa de uma organização ofensiva para uma postura defensiva. A velocidade de reação mental e física dos jogadores determina se recuperaremos a bola rapidamente ou se precisaremos nos reorganizar para defender de forma estruturada.",
+    { fase:"Transição Defensiva", color:C.red, icon:AlertTriangle,
       regras:[
-        {se:"Perdermos a posse de bola",entao:"Pressionar imediatamente por até 8 segundos",pq:"Recuperar a bola no terço ofensivo aproveitando a desorganização momentânea adversária"},
-        {se:"Não recuperarmos rapidamente",entao:"Falta tática ou recompor defensivamente",pq:"Interromper o contra-ataque adversário ou reorganizar as linhas defensivas"},
-        {se:"Fora da zona de pressão",entao:"Formar funil direcionando para as laterais",pq:"Proteger o eixo central e reduzir ângulos de progressão adversária"},
-        {se:"A pressão for vencida",entao:"Reagrupar atrás da linha da bola",pq:"Reequilibrar as linhas defensivas e evitar espaços entre setores"},
-        {se:"Houver superioridade adversária",entao:"Temporizar e chamar cobertura",pq:"Ganhar tempo para que companheiros se reposicionem defensivamente"},
+        {se:"Perda de posse",entao:"Pressionar até 8 segundos",pq:"Recuperar no terço ofensivo"},
+        {se:"Não recuperou rápido",entao:"Falta tática ou recompor",pq:"Interromper contra-ataque"},
+        {se:"Fora da zona de pressão",entao:"Funil para as laterais",pq:"Proteger eixo central"},
+        {se:"Pressão vencida",entao:"Reagrupar atrás da linha da bola",pq:"Reequilibrar setores"},
+        {se:"Superioridade adversária",entao:"Temporizar e chamar cobertura",pq:"Ganhar tempo para reposicionamento"},
       ]},
   ];
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
       <div>
-        <div style={{fontFamily:fontD,fontSize:20,color:C.text,fontWeight:700}}>Modelo Tencati — Estrutura Condicional</div>
-        <div style={{fontFamily:font,fontSize:11,color:C.textDim,marginTop:4}}>SE → ENTÃO → PORQUÊ · 4 Momentos do Jogo · 100+ Relações Condicionais</div>
+        <div style={{fontFamily:fontD,fontSize:18,color:C.text,fontWeight:700}}>Modelo de Jogo Tencati</div>
+        <div style={{fontFamily:font,fontSize:11,color:C.textDim,marginTop:2}}>Estrutura SE → ENTÃO → PORQUÊ</div>
       </div>
       <Badge color={C.green}>VIGENTE</Badge>
     </div>
-    <Card style={{marginBottom:16,padding:20}}>
-      <div style={{fontFamily:font,fontSize:13,color:C.textMid,lineHeight:1.7,maxWidth:900}}>
-        O Modelo Tencati é um framework pedagógico que transforma decisões individuais em inteligência coletiva através da criação de um idioma tático compartilhado. Cada relação SE → ENTÃO representa uma regra de interação sustentada por princípios claros, permitindo que os jogadores compreendam não apenas <em>o que</em> fazer, mas <em>por que</em> fazer.
-      </div>
-      <div style={{marginTop:16,padding:"12px 16px",borderLeft:`3px solid ${C.gold}`,background:C.bgInput,borderRadius:"0 6px 6px 0"}}>
-        <div style={{fontFamily:font,fontSize:12,color:C.text,fontStyle:"italic",fontWeight:600}}>"Treinar é criar contextos para que o coletivo aprenda a decidir."</div>
-      </div>
-    </Card>
     {fases.map((f,fi)=>{
       const I=f.icon;
-      return <Card key={fi} style={{marginBottom:16}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-          <div style={{width:36,height:36,borderRadius:8,background:`${f.color}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><I size={18} color={f.color}/></div>
-          <div>
-            <div style={{fontFamily:fontD,fontSize:16,color:f.color,fontWeight:700,textTransform:"uppercase"}}>{f.fase}</div>
-            <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>{f.sub}</div>
-          </div>
+      return <Card key={fi} style={{marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+          <div style={{width:32,height:32,borderRadius:6,background:`${f.color}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><I size={16} color={f.color}/></div>
+          <div style={{fontFamily:fontD,fontSize:14,color:f.color,fontWeight:700,textTransform:"uppercase"}}>{f.fase}</div>
         </div>
-        <div style={{fontFamily:font,fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:16}}>{f.desc}</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
           {f.regras.map((r,ri)=>(
-            <div key={ri} style={{padding:14,borderRadius:8,border:`1px solid ${f.color}33`,background:`${f.color}08`}}>
-              <div style={{fontFamily:font,fontSize:12,color:C.text,fontWeight:700,marginBottom:6}}>SE {r.se}</div>
-              <div style={{fontFamily:font,fontSize:11,color:C.text,marginBottom:4}}><span style={{fontWeight:700,color:f.color}}>ENTÃO:</span> {r.entao}</div>
-              <div style={{fontFamily:font,fontSize:10,color:C.textMid}}><span style={{fontWeight:700}}>PORQUÊ:</span> {r.pq}</div>
+            <div key={ri} style={{padding:12,borderRadius:6,border:`1px solid ${f.color}22`,background:`${f.color}06`}}>
+              <div style={{fontFamily:font,fontSize:11,color:C.text,fontWeight:700,marginBottom:4}}>SE {r.se}</div>
+              <div style={{fontFamily:font,fontSize:11,color:C.text}}><span style={{fontWeight:700,color:f.color}}>ENTÃO:</span> {r.entao}</div>
+              <div style={{fontFamily:font,fontSize:10,color:C.textDim,marginTop:2}}>{r.pq}</div>
             </div>
           ))}
         </div>
       </Card>;
     })}
-    <Card style={{padding:16}}>
-      <div style={{fontFamily:font,fontSize:10,color:C.textDim,textAlign:"center"}}>Comissão Técnica Tencati 3 · Este documento representa a base conceitual para desenvolvimento de toda estrutura de treinamento, análise de desempenho e comunicação tática da temporada.</div>
-    </Card>
+    <div style={{fontFamily:font,fontSize:9,color:C.textDim,textAlign:"center",marginTop:8}}>Comissão Técnica Tencati 3 · Base conceitual para treinamento e análise tática</div>
   </div>;
 }
 
@@ -847,7 +834,7 @@ export default function PantherPerformance() {
   const [time,setTime]=useState(new Date());
   const [tarefas,setTarefas]=useState([]);
   const [showAddTarefa,setShowAddTarefa]=useState(false);
-  const [isDark,setIsDark]=useState(true);
+  const [isDark,setIsDark]=useState(false);
   const sheets = useSheets();
 
   // Update theme colors before render
