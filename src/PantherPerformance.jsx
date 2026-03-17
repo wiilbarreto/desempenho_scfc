@@ -665,9 +665,11 @@ function AtletasPage({nav}) {
 // ═══════════════════════════════════════════════
 // PAGE: ATLETA DETAIL
 // ═══════════════════════════════════════════════
+const norm = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
 function AtletaDetailPage({id,onBack,videos=[],partidas=[]}) {
   const a=ATLETAS.find(x=>x.id===id)||ATLETAS[0];
-  const aVideos=videos.filter(v=>v.atleta===a.nome);
+  const aN = norm(a.nome);
+  const aVideos=videos.filter(v=>{ const vN=norm(v.atleta); return vN===aN || vN.includes(aN) || aN.includes(vN); });
   const posStats = {
     GK: ["Defesas","Gols Sofridos","Clean Sheets","xG Sofrido","Saídas"],
     CB: ["Duelos Aéreos","Interceptações","Cortes","Passes Longos","Duelos%"],
@@ -729,11 +731,11 @@ function AtletaDetailPage({id,onBack,videos=[],partidas=[]}) {
     </Card>
 
     <Card><SH title="Vídeos" count={aVideos.length}/>
-      {aVideos.length>0?aVideos.map(v=>(
-        <div key={v.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:4,border:`1px solid ${C.border}`,marginBottom:4,cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.gold} onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-          <Play size={14} color={C.gold}/><div style={{flex:1}}><div style={{fontFamily:font,fontSize:12,color:C.text}}>{v.titulo}</div><div style={{fontFamily:font,fontSize:9,color:C.textDim}}>{v.data} · {v.dur}</div></div><PlatBadge p={v.plat}/>
-        </div>
-      )):<div style={{fontFamily:font,fontSize:11,color:C.textDim,padding:10}}>Nenhum vídeo individual cadastrado.</div>}
+      {aVideos.length>0?aVideos.map(v=>{
+        const vLink = v.link || v.linkAlt || "";
+        return <div key={v.id} onClick={vLink?()=>window.open(vLink,"_blank"):undefined} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:4,border:`1px solid ${C.border}`,marginBottom:4,cursor:vLink?"pointer":"default"}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.gold} onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+          <Play size={14} color={C.gold}/><div style={{flex:1}}><div style={{fontFamily:font,fontSize:12,color:C.text}}>{v.titulo}</div><div style={{fontFamily:font,fontSize:9,color:C.textDim}}>{v.data}{v.dur?` · ${v.dur}`:""}</div></div>{vLink&&<span style={{fontFamily:font,fontSize:8,color:C.green,background:`${C.green}18`,padding:"2px 6px",borderRadius:3,textTransform:"uppercase",fontWeight:600}}>Link</span>}<PlatBadge p={v.plat}/>
+        </div>;}):<div style={{fontFamily:font,fontSize:11,color:C.textDim,padding:10}}>Nenhum vídeo individual cadastrado.</div>}
     </Card>
   </div>;
 }
