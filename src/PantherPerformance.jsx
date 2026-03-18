@@ -1068,7 +1068,7 @@ function AtletaDetailPage({id,onBack,videos=[],partidas=[],individual=[]}) {
 // ═══════════════════════════════════════════════
 // PAGE: VÍDEOS
 // ═══════════════════════════════════════════════
-function VideosPage({videos=[],athleteMode=false}) {
+function VideosPage({videos=[],athleteMode=false,athleteInfo=null}) {
   const [search,setSearch]=useState("");
   const [ft,setFt]=useState("TODOS");
   const tipos=["TODOS","jogo_completo","clip_individual","analise_adversario","treino","prelecao","bola_parada","modelo_jogo"];
@@ -1127,10 +1127,17 @@ function VideosPage({videos=[],athleteMode=false}) {
           </div>
           {/* Info section */}
           <div style={{padding:"12px 14px"}}>
-            <div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:600,marginBottom:4,lineHeight:1.3}}>{v.titulo}</div>
-            {v.atleta&&<div style={{fontFamily:font,fontSize:10,color:C.gold,marginBottom:6,display:"flex",alignItems:"center",gap:4}}>
-              <User size={10}/>{v.atleta}
-            </div>}
+            <div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:600,marginBottom:6,lineHeight:1.3}}>{v.titulo}</div>
+            {v.atleta&&(()=>{
+              const matchedAthlete = athleteInfo || ATLETAS.find(a=>normalizeLogin(a.nome)===normalizeLogin(v.atleta));
+              return <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                {matchedAthlete&&matchedAthlete.foto?<img src={matchedAthlete.foto} alt={v.atleta} style={{width:24,height:24,borderRadius:"50%",objectFit:"cover",border:`1.5px solid ${C.gold}`,flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>:<User size={10} color={C.gold}/>}
+                <div>
+                  <div style={{fontFamily:font,fontSize:10,color:C.gold,fontWeight:600}}>{v.atleta}</div>
+                  {matchedAthlete&&<div style={{fontFamily:font,fontSize:8,color:C.textDim}}>{matchedAthlete.pos}{matchedAthlete.num?` · #${matchedAthlete.num}`:""}</div>}
+                </div>
+              </div>;
+            })()}
             {v.data&&<div style={{fontFamily:font,fontSize:9,color:C.textDim}}>{v.data}{v.comp?` · ${v.comp}`:""}{v.rodada?` · ${v.rodada}`:""}</div>}
           </div>
         </div>;
@@ -1237,15 +1244,21 @@ const NAV = [
 // ═══════════════════════════════════════════════
 // AUTH — Simple login gate
 // ═══════════════════════════════════════════════
+// Generate athlete logins from ATLETAS: normalize name → login key
+const normalizeLogin = (name) => name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g,"").replace(/[^a-z0-9]/g,"");
+const ATHLETE_LOGINS = {};
+ATLETAS.forEach(a => { ATHLETE_LOGINS[normalizeLogin(a.nome)] = a; });
+
 const AUTH_USERS = {
   semirabrao: "analisebfsa",
   casiocabral: "analisebfsa",
   caiofelipe: "analisebfsa",
   fillipesoutto: "analisebfsa",
   andreleite: "analisebfsa",
-  atleta: "atleta",
+  ...Object.keys(ATHLETE_LOGINS).reduce((acc, k) => { acc[k] = "atleta"; return acc; }, {}),
 };
-const ATHLETE_USER = "atleta";
+const isAthleteUser = (u) => !!ATHLETE_LOGINS[u];
+const getAthleteData = (u) => ATHLETE_LOGINS[u] || null;
 
 function LoginPage({ onLogin }) {
   const [user, setUser] = useState("");
@@ -1357,8 +1370,9 @@ function LoginPage({ onLogin }) {
 
 export default function PantherPerformance() {
   const [authedUser,setAuthedUser]=useState(()=>sessionStorage.getItem("bfsa_user")||null);
-  const isAthlete = authedUser === ATHLETE_USER;
-  const [page,setPage]=useState(()=>sessionStorage.getItem("bfsa_user")===ATHLETE_USER?"videos":"dashboard");
+  const isAthlete = authedUser && isAthleteUser(authedUser);
+  const athleteData = authedUser ? getAthleteData(authedUser) : null;
+  const [page,setPage]=useState(()=>{const u=sessionStorage.getItem("bfsa_user");return u&&isAthleteUser(u)?"videos":"dashboard"});
   const [sub,setSub]=useState(null);
   const [selId,setSelId]=useState(null);
   const [collapsed,setCollapsed]=useState({});
@@ -1369,7 +1383,7 @@ export default function PantherPerformance() {
   const [advChecklist,setAdvChecklist]=useState(()=>{try{const s=localStorage.getItem("bfsa_advChecklist");return s?JSON.parse(s):[]}catch{return[]}});
   const sheets = useSheets();
 
-  const handleLogin=(u)=>{sessionStorage.setItem("bfsa_user",u);setAuthedUser(u);if(u===ATHLETE_USER)setPage("videos")};
+  const handleLogin=(u)=>{sessionStorage.setItem("bfsa_user",u);setAuthedUser(u);if(isAthleteUser(u))setPage("videos")};
   const handleLogout=()=>{sessionStorage.removeItem("bfsa_user");setAuthedUser(null)};
 
   // Update theme colors before render
@@ -1408,7 +1422,10 @@ export default function PantherPerformance() {
   const atrasadas=tarefas.filter(t=>t.status==="atrasada").length;
 
   const renderPage=()=>{
-    if(isAthlete) return <VideosPage videos={videos.filter(v=>v.tipo==="clip_individual")} athleteMode/>;
+    if(isAthlete) {
+      const myVideos = videos.filter(v=>v.tipo==="clip_individual"&&athleteData&&v.atleta&&normalizeLogin(v.atleta)===normalizeLogin(athleteData.nome));
+      return <VideosPage videos={myVideos} athleteMode athleteInfo={athleteData}/>;
+    }
     if(sub==="atleta-detail") return <AtletaDetailPage id={selId} onBack={goBack} videos={videos} partidas={partidas} individual={individual}/>;
     switch(page){
       case "dashboard": return <DashboardPage nav={nav} tarefas={tarefas} videos={videos} partidas={partidas} proxAdv={proxAdv} individual={individual}/>;
@@ -1450,6 +1467,14 @@ export default function PantherPerformance() {
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
+          {athleteData&&<div style={{display:"flex",alignItems:"center",gap:8}}>
+            {athleteData.foto&&<img src={athleteData.foto} alt={athleteData.nome} style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",border:`2px solid ${C.gold}`}} onError={e=>{e.target.style.display="none"}}/>}
+            <div>
+              <div style={{fontFamily:fontD,fontSize:11,fontWeight:700,color:C.text,lineHeight:1}}>{athleteData.nome}</div>
+              <div style={{fontFamily:font,fontSize:8,color:C.textDim}}>#{athleteData.num} · {athleteData.pos}</div>
+            </div>
+          </div>}
+          <div style={{width:1,height:20,background:C.border,margin:"0 4px"}}/>
           <button onClick={()=>setIsDark(d=>!d)} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,cursor:"pointer",padding:"6px 8px",display:"flex",alignItems:"center",gap:4}}>
             {isDark?<Sun size={12} color={C.yellow}/>:<Moon size={12} color={C.gold}/>}
             <span style={{fontFamily:font,fontSize:9,color:C.textMid,fontWeight:500}}>{isDark?"Claro":"Escuro"}</span>
@@ -1464,12 +1489,17 @@ export default function PantherPerformance() {
           </button>
         </div>
       </div>
-      {/* ATHLETE CONTENT */}
+      {/* ATHLETE WELCOME + CONTENT */}
       <div style={{maxWidth:1100,margin:"0 auto",padding:"24px 20px"}}>
-        <div style={{marginBottom:20,paddingBottom:12,borderBottom:`1px solid ${C.border}`}}>
-          <h1 style={{fontFamily:fontD,fontSize:22,fontWeight:700,color:C.text,textTransform:"uppercase",letterSpacing:"0.06em"}}>Meus Vídeos</h1>
-          <p style={{fontFamily:font,fontSize:11,color:C.textDim,marginTop:4}}>Acesse seus vídeos de análise individual</p>
-        </div>
+        {athleteData&&<div style={{marginBottom:24,padding:24,borderRadius:12,background:`linear-gradient(135deg, ${C.bgCard}, ${C.bgSidebar})`,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:20}}>
+          {athleteData.foto&&<div style={{width:72,height:72,borderRadius:"50%",overflow:"hidden",border:`3px solid ${C.gold}`,flexShrink:0,background:C.bgInput}}>
+            <img src={athleteData.foto} alt={athleteData.nome} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>{e.target.style.display="none"}}/>
+          </div>}
+          <div>
+            <h1 style={{fontFamily:fontD,fontSize:22,fontWeight:700,color:C.text,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>Olá, {athleteData.nome.split(" ")[0]}</h1>
+            <p style={{fontFamily:font,fontSize:11,color:C.textDim}}>#{athleteData.num} · {athleteData.pos} · Acesse seus vídeos de análise individual abaixo</p>
+          </div>
+        </div>}
         {renderPage()}
       </div>
     </div>
