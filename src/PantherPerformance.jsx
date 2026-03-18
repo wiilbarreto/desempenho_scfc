@@ -693,42 +693,53 @@ function AtletasPage({nav}) {
 const norm = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
 
 // ═══════════════════════════════════════════════
-// POSITION-SPECIFIC METRICS — Based on sports science references
-// Ref: Carling et al. (2012) Match analysis; Bradley et al. (2013) High-intensity running;
-// Castellano et al. (2014) Positional demands; Liu et al. (2016) KPIs by position
+// POSITION-SPECIFIC METRICS — Referencial Teórico
+// Decroos et al. (KDD 2019) VAEP; Bransen & Van Haaren (2020) Progressive passes;
+// MDPI Applied Sciences (2025) SciSkill Forecasting; ICSPORTS (2025) Can We Predict Success;
+// Pappalardo et al. (2019) PlayeRank; Bhatt et al. (AIMV 2025) KickClone;
+// LJMU + KU Leuven (Science & Medicine in Football, 2025)
+// Indices: Wyscout PT + SkillCorner composite indices
 // ═══════════════════════════════════════════════
 const POS_METRICS = {
   "Goleiro": {
     keys: [{k:"min",label:"Minutos"},{k:"acoes",label:"Ações"},{k:"passesCrt",label:"Passes Certos"},{k:"passesLong",label:"Passes Longos"}],
-    desc: "Para goleiros, a análise foca em distribuição (passes curtos e longos), leitura de jogo e participação na construção. Referência: saída de jogo com pé e lançamentos longos precisos (Bradley et al., 2013).",
+    desc: "Goleiros são avaliados por defesas%, gols sofridos/90, xG defendido/90 e distribuição com os pés (passes longos certos%). Pappalardo et al. (2019) PlayeRank: goleiros de elite se diferenciam pela participação na construção e leitura de jogo aéreo.",
+    indices: ["Defesas %", "Golos sofridos/90", "xG defendido/90", "Passes longos certos %"],
   },
   "Zagueiro": {
     keys: [{k:"duelos",label:"Duelos Ganhos"},{k:"passesCrt",label:"Passes Certos"},{k:"passesLong",label:"Passes Longos"},{k:"acoes",label:"Ações Totais"},{k:"min",label:"Minutos"}],
-    desc: "Zagueiros são avaliados por duelos aéreos e terrestres, qualidade de passe na construção, e capacidade de condução. Carling et al. (2012): duelos ganhos e passes longos efetivos são os KPIs primários.",
+    desc: "Zagueiros: duelos defensivos ganhos%, duelos aéreos ganhos%, cortes, interceptações e construção (passes progressivos, passes longos certos%). Decroos et al. (2019) VAEP: ações defensivas com êxito são o melhor preditor de impacto defensivo. SkillCorner: Physical & Aggressive Defender vs Ball-Playing CB.",
+    indices: ["Duelos defensivos ganhos %", "Duelos aéreos ganhos %", "Cortes/90", "Interceptações/90", "Passes progressivos/90", "Passes longos certos %"],
   },
   "Lateral Direito": {
     keys: [{k:"cruz",label:"Cruzamentos"},{k:"dribles",label:"Dribles"},{k:"duelos",label:"Duelos Ganhos"},{k:"passesCrt",label:"Passes Certos"},{k:"acoes",label:"Ações Totais"}],
-    desc: "Laterais exigem amplitude ofensiva (cruzamentos, dribles) e solidez defensiva (duelos). Castellano et al. (2014): laterais modernos contribuem com ~15% das ações ofensivas da equipe.",
+    desc: "Laterais: cruzamentos certos%, corridas progressivas/90, acelerações/90, dribles e duelos defensivos ganhos%. Bransen & Van Haaren (2020): passes progressivos e contribuição em terço final são os KPIs diferenciais. SkillCorner: Intense Full Back vs Technical Full Back index.",
+    indices: ["Cruzamentos certos %", "Corridas progressivas/90", "Acelerações/90", "Duelos defensivos ganhos %", "Assistências/90", "Dribles/90"],
   },
   "Lateral Esquerdo": {
     keys: [{k:"cruz",label:"Cruzamentos"},{k:"dribles",label:"Dribles"},{k:"duelos",label:"Duelos Ganhos"},{k:"passesCrt",label:"Passes Certos"},{k:"acoes",label:"Ações Totais"}],
-    desc: "Laterais exigem amplitude ofensiva (cruzamentos, dribles) e solidez defensiva (duelos). Castellano et al. (2014): laterais modernos contribuem com ~15% das ações ofensivas da equipe.",
+    desc: "Laterais: cruzamentos certos%, corridas progressivas/90, acelerações/90, dribles e duelos defensivos ganhos%. Bransen & Van Haaren (2020): passes progressivos e contribuição em terço final são os KPIs diferenciais. SkillCorner: Intense Full Back vs Technical Full Back index.",
+    indices: ["Cruzamentos certos %", "Corridas progressivas/90", "Acelerações/90", "Duelos defensivos ganhos %", "Assistências/90", "Dribles/90"],
   },
   "Volante": {
     keys: [{k:"passesCrt",label:"Passes Certos"},{k:"duelos",label:"Duelos Ganhos"},{k:"acoes",label:"Ações Totais"},{k:"passesLong",label:"Passes Longos"},{k:"min",label:"Minutos"}],
-    desc: "Volantes são o eixo de transição: recuperação e distribuição. Liu et al. (2016): passes progressivos e interceptações são os melhores preditores de desempenho no setor médio defensivo.",
+    desc: "Volantes: ações defensivas com êxito/90, interceptações ajust. à posse, duelos defensivos ganhos%, passes progressivos/90 e passes longos certos%. MDPI (2025) SciSkill: interceptações e passes progressivos são os melhores preditores no setor médio. SkillCorner: Number 6 vs Box-to-Box index.",
+    indices: ["Ações defensivas/90", "Interceptações ajust. posse", "Duelos defensivos ganhos %", "Passes progressivos/90", "Passes longos certos %", "Cortes/90"],
   },
   "Meia": {
     keys: [{k:"passesCrt",label:"Passes Certos"},{k:"assist",label:"Assistências"},{k:"dribles",label:"Dribles"},{k:"xg",label:"xG"},{k:"acoes",label:"Ações Totais"}],
-    desc: "Meias criativos são medidos por passes decisivos, dribles em zonas de finalização e contribuição ofensiva (xG + assistências). Bradley et al. (2013): meias top realizam 2-3x mais ações em terço final.",
+    desc: "Meias: assistências esperadas (xA)/90, passes chave/90, passes inteligentes/90, passes progressivos/90 e corridas progressivas/90. ICSPORTS (2025): trajetórias de desenvolvimento > atributos estáticos — meias top realizam 2-3x mais ações em terço final. SkillCorner: Dynamic No.8 vs Box-to-Box index.",
+    indices: ["xA/90", "Passes chave/90", "Passes inteligentes/90", "Passes progressivos/90", "Corridas progressivas/90", "Dribles com sucesso %"],
   },
   "Extremo": {
     keys: [{k:"dribles",label:"Dribles"},{k:"gols",label:"Gols"},{k:"assist",label:"Assistências"},{k:"cruz",label:"Cruzamentos"},{k:"xg",label:"xG"}],
-    desc: "Extremos são avaliados por capacidade de drible 1v1, finalização, cruzamentos e assistências. Castellano et al. (2014): efetividade em 1v1 e participação direta em gol são os KPIs diferenciais.",
+    desc: "Extremos: dribles com sucesso%, gols/90, xG/90, cruzamentos certos%, acelerações/90 e corridas progressivas/90. Bhatt et al. (2025) KickClone: efetividade 1v1 e participação direta em gol (G+A) são os KPIs diferenciais via similaridade por cosseno. SkillCorner: Inverted Winger vs Wide Winger index.",
+    indices: ["Dribles com sucesso %", "Gols/90", "xG/90", "Cruzamentos certos %", "Acelerações/90", "Corridas progressivas/90"],
   },
   "Atacante": {
     keys: [{k:"gols",label:"Gols"},{k:"xg",label:"xG"},{k:"remates",label:"Remates"},{k:"duelos",label:"Duelos Ganhos"},{k:"acoes",label:"Ações Totais"}],
-    desc: "Atacantes são avaliados por eficiência finalizadora (gols/xG ratio), volume de remates e envolvimento no jogo. Liu et al. (2016): atacantes de elite mantêm ratio gols/xG > 1.0.",
+    desc: "Atacantes: gols/90, xG/90, remates à baliza%, toques na área/90, duelos ofensivos ganhos% e dribles/90. Decroos et al. (2019) VAEP: ΔP(marca gol) é o componente dominante. MDPI (2025): atacantes de elite mantêm ratio gols/xG ≥ 1.0. SkillCorner: Direct Striker vs Link-Up Striker index.",
+    indices: ["Gols/90", "xG/90", "Remates à baliza %", "Toques na área/90", "Duelos ofensivos ganhos %", "Dribles/90"],
   },
 };
 
@@ -889,6 +900,12 @@ function AtletaDetailPage({id,onBack,videos=[],partidas=[],individual=[]}) {
           </div>;
         })}
       </div>
+      {posM.indices && <div style={{marginTop:10}}>
+        <div style={{fontFamily:font,fontSize:9,color:C.textDim,fontWeight:600,textTransform:"uppercase",marginBottom:4}}>Índices de Referência (Wyscout / SkillCorner)</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+          {posM.indices.map((idx,i) => <span key={i} style={{fontFamily:font,fontSize:9,color:C.text,background:C.bgInput,border:`1px solid ${C.border}`,padding:"2px 6px",borderRadius:3}}>{idx}</span>)}
+        </div>
+      </div>}
       <div style={{fontFamily:font,fontSize:10,color:C.textDim,marginTop:8,padding:"8px 10px",background:C.bgInput,borderRadius:4,lineHeight:1.5}}>
         <strong style={{color:C.text}}>Referencial teórico:</strong> {posM.desc}
       </div>
