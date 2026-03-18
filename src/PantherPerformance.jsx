@@ -1316,10 +1316,10 @@ export default function PantherPerformance() {
   const [selId,setSelId]=useState(null);
   const [collapsed,setCollapsed]=useState({});
   const [time,setTime]=useState(new Date());
-  const [tarefas,setTarefas]=useState([]);
+  const [tarefas,setTarefas]=useState(()=>{try{const s=localStorage.getItem("bfsa_tarefas");return s?JSON.parse(s):[]}catch{return[]}});
   const [showAddTarefa,setShowAddTarefa]=useState(false);
-  const [isDark,setIsDark]=useState(false);
-  const [advChecklist,setAdvChecklist]=useState([]);
+  const [isDark,setIsDark]=useState(()=>{try{return localStorage.getItem("bfsa_dark")==="true"}catch{return false}});
+  const [advChecklist,setAdvChecklist]=useState(()=>{try{const s=localStorage.getItem("bfsa_advChecklist");return s?JSON.parse(s):[]}catch{return[]}});
   const sheets = useSheets();
 
   const handleLogin=(u)=>{sessionStorage.setItem("bfsa_user",u);setAuthedUser(u)};
@@ -1330,6 +1330,9 @@ export default function PantherPerformance() {
 
   useEffect(()=>{const t=setInterval(()=>setTime(new Date()),60000);return()=>clearInterval(t)},[]);
   useEffect(()=>{if(authedUser) sheets.sync()},[authedUser]);// eslint-disable-line
+  useEffect(()=>{try{localStorage.setItem("bfsa_tarefas",JSON.stringify(tarefas))}catch{}},[tarefas]);
+  useEffect(()=>{try{localStorage.setItem("bfsa_advChecklist",JSON.stringify(advChecklist))}catch{}},[advChecklist]);
+  useEffect(()=>{try{localStorage.setItem("bfsa_dark",isDark?"true":"false")}catch{}},[isDark]);
 
   if(!authedUser) return <LoginPage onLogin={handleLogin}/>;
 
