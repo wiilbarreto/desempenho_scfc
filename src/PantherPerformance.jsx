@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import useTarefas from "./useTarefas";
 import {
   BarChart, Bar, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid,
@@ -1316,7 +1317,7 @@ export default function PantherPerformance() {
   const [selId,setSelId]=useState(null);
   const [collapsed,setCollapsed]=useState({});
   const [time,setTime]=useState(new Date());
-  const [tarefas,setTarefas]=useState(()=>{try{const s=localStorage.getItem("bfsa_tarefas");return s?JSON.parse(s):[]}catch{return[]}});
+  const {tarefas,addTarefa:addTarefaDB,updateTarefa:updateTarefaDB,removeTarefa:removeTarefaDB}=useTarefas();
   const [showAddTarefa,setShowAddTarefa]=useState(false);
   const [isDark,setIsDark]=useState(()=>{try{return localStorage.getItem("bfsa_dark")==="true"}catch{return false}});
   const [advChecklist,setAdvChecklist]=useState(()=>{try{const s=localStorage.getItem("bfsa_advChecklist");return s?JSON.parse(s):[]}catch{return[]}});
@@ -1330,7 +1331,6 @@ export default function PantherPerformance() {
 
   useEffect(()=>{const t=setInterval(()=>setTime(new Date()),60000);return()=>clearInterval(t)},[]);
   useEffect(()=>{if(authedUser) sheets.sync()},[authedUser]);// eslint-disable-line
-  useEffect(()=>{try{localStorage.setItem("bfsa_tarefas",JSON.stringify(tarefas))}catch{}},[tarefas]);
   useEffect(()=>{try{localStorage.setItem("bfsa_advChecklist",JSON.stringify(advChecklist))}catch{}},[advChecklist]);
   useEffect(()=>{try{localStorage.setItem("bfsa_dark",isDark?"true":"false")}catch{}},[isDark]);
 
@@ -1350,9 +1350,9 @@ export default function PantherPerformance() {
     return { nome: match.adv, data: match.data, comp: `${match.comp} ${match.rodada}`, form: "", escudo: match.escudo || "", progresso: pct };
   })() : null;
 
-  const addTarefa=(t)=>{setTarefas(prev=>[...prev,{...t,id:Date.now()}]);setShowAddTarefa(false)};
-  const updateTarefa=(id,updates)=>setTarefas(prev=>prev.map(t=>t.id===id?{...t,...updates}:t));
-  const removeTarefa=(id)=>setTarefas(prev=>prev.filter(t=>t.id!==id));
+  const addTarefa=(t)=>{addTarefaDB(t);setShowAddTarefa(false)};
+  const updateTarefa=(id,updates)=>updateTarefaDB(id,updates);
+  const removeTarefa=(id)=>removeTarefaDB(id);
 
   const nav=(target,id)=>{
     if(target==="atleta-detail"){setSub("atleta-detail");setSelId(id)}
