@@ -155,30 +155,38 @@ function mapCalendario(rows) {
   }));
 }
 
+function getLink(r) { return getField(r,"Link Vídeo","Link Vídeo","Link Video","Link vídeo","Link","URL"); }
+function getLinkAlt(r) { return getField(r,"Link Alternativo","Link Alt"); }
 function mapVideos(rows) {
-  return rows.filter(r => (r["Link Vídeo"] || r["Link Alternativo"] || r.Link || r.URL || "").trim()).map((r, i) => {
-    const desc = r["Adversário/Descrição"] || r["Título"] || r.Titulo || "";
+  if(rows.length>0) console.log("[BFSA mapVideos] headers:", Object.keys(rows[0]), "sample:", rows[0]);
+  return rows.filter(r => getLink(r).trim()).map((r, i) => {
+    const desc = r["Adversário/Descrição"] || r["Adversario/Descricao"] || r["Título"] || r.Titulo || "";
     const comp = r.Comp || "";
     const rodada = r.Rodada || "";
     const tipoRaw = (r.Tipo || "").toLowerCase().trim();
-    const tipo = tipoRaw.includes("prelec") ? "prelecao"
-      : tipoRaw.includes("adv") ? "adversario"
+    const tipo = tipoRaw.includes("jogo completo") ? "jogo_completo"
+      : tipoRaw.includes("prelec") ? "prelecao"
+      : (tipoRaw.includes("adv") || tipoRaw.includes("análise de adv") || tipoRaw.includes("analise de adv")) ? "analise_adversario"
+      : tipoRaw.includes("bola") || tipoRaw.includes("parada") ? "bola_parada"
+      : tipoRaw.includes("modelo") ? "modelo_jogo"
+      : tipoRaw.includes("treino") ? "treino"
       : tipoRaw.includes("col") ? "coletivo"
       : tipoRaw.includes("ind") ? "clip_individual"
+      : tipoRaw.includes("material") || tipoRaw.includes("orientador") ? "prelecao"
       : tipoRaw || "clip_individual";
     const dataStr = r.Data || "";
     let titulo = desc || [comp, rodada].filter(Boolean).join(" - ") || `Vídeo ${i + 1}`;
     if (tipo === "treino" && dataStr) titulo = `${titulo} — ${dataStr}`;
     return {
       id: i + 1, titulo, tipo,
-      plat: r.Plataforma || r.Plat || "google_drive",
+      plat: r.Plataforma || r.Plat || (()=>{const l=getLink(r).toLowerCase();return l.includes("youtu")?"youtube":l.includes("vimeo")?"vimeo":l.includes("wyscout")?"wyscout":"google_drive"})(),
       atleta: r.Atleta || "",
       partida: desc,
       dur: r["Duração"] || r.Dur || "",
       data: r.Data || "",
       comp, rodada,
-      link: r["Link Vídeo"] || r.Link || r.URL || "",
-      linkAlt: r["Link Alternativo"] || r["Link Alt"] || "",
+      link: getLink(r),
+      linkAlt: getLinkAlt(r),
       responsavel: r["Responsável"] || "",
     };
   });
