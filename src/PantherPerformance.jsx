@@ -40,12 +40,25 @@ function parseCSV(text) {
     vals.push(cur.trim().replace(/\r/g, ""));
     return vals;
   };
-  // Find the real header row — skip title/metadata rows where most values are empty
+  // Find the real header row — skip title/metadata rows
+  // Look for a row that has known column header keywords
+  const headerKeywords = ["tipo","comp","data","rodada","link","atleta","nome","gols","nota","adversário","adversario","duração","plat"];
   let headerIdx = 0;
-  for (let i = 0; i < Math.min(lines.length, 10); i++) {
-    const vals = splitLine(lines[i]).map(v => v.replace(/^"|"$/g, ""));
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    const vals = splitLine(lines[i]).map(v => v.replace(/^"|"$/g, "").trim().toLowerCase());
     const nonEmpty = vals.filter(v => v.length > 0).length;
-    if (nonEmpty >= 3) { headerIdx = i; break; }
+    const hasKeyword = vals.some(v => headerKeywords.some(k => v.includes(k)));
+    if (nonEmpty >= 3 && hasKeyword) { headerIdx = i; break; }
+    // Fallback: if no keyword found, use first row with 5+ non-empty (more strict)
+    if (nonEmpty >= 5 && headerIdx === 0) { headerIdx = i; }
+  }
+  // If still 0, use the original heuristic
+  if (headerIdx === 0) {
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+      const vals = splitLine(lines[i]).map(v => v.replace(/^"|"$/g, ""));
+      const nonEmpty = vals.filter(v => v.length > 0).length;
+      if (nonEmpty >= 3) { headerIdx = i; break; }
+    }
   }
   const headers = splitLine(lines[headerIdx]).map(h => h.replace(/^"|"$/g, ""));
   console.log("[BFSA parseCSV]", { sep, headerIdx, headers, lineCount: lines.length });
@@ -155,16 +168,17 @@ function mapCalendario(rows) {
   }));
 }
 
-function getLink(r) { return getField(r,"Link Vídeo","Link Vídeo","Link Video","Link vídeo","Link","URL"); }
-function getLinkAlt(r) { return getField(r,"Link Alternativo","Link Alt"); }
+function getLink(r) { return findCol(r,"Link Vídeo","Link Video","Link vídeo","Link","URL") || ""; }
+function getLinkAlt(r) { return findCol(r,"Link Alternativo","Link Alt") || ""; }
 function mapVideos(rows) {
-  if(rows.length>0) console.log("[BFSA mapVideos] headers:", Object.keys(rows[0]), "sample:", rows[0]);
-  return rows.filter(r => getLink(r).trim()).map((r, i) => {
-    const desc = r["Adversário/Descrição"] || r["Adversario/Descricao"] || r["Título"] || r.Titulo || "";
-    const comp = r.Comp || "";
-    const rodada = r.Rodada || "";
-    const tipoRaw = (r.Tipo || "").toLowerCase().trim();
+  if(rows.length>0) console.log("[BFSA mapVideos] headers:", Object.keys(rows[0]), "sample row[0]:", rows[0]);
+  const mapped = rows.filter(r => getLink(r).trim()).map((r, i) => {
+    const desc = findCol(r,"Adversário/Descrição","Adversario/Descricao","Título","Titulo") || "";
+    const comp = findCol(r,"Comp","comp","Competição","competição","Competicao") || "";
+    const rodada = findCol(r,"Rodada","rodada") || "";
+    const tipoRaw = (findCol(r,"Tipo","tipo") || "").toLowerCase().trim();
     const tipo = tipoRaw.includes("jogo completo") ? "jogo_completo"
+      : tipoRaw.includes("relat") ? "analise_adversario"
       : tipoRaw.includes("prelec") ? "prelecao"
       : (tipoRaw.includes("adv") || tipoRaw.includes("análise de adv") || tipoRaw.includes("analise de adv")) ? "analise_adversario"
       : tipoRaw.includes("bola") || tipoRaw.includes("parada") ? "bola_parada"
@@ -174,22 +188,25 @@ function mapVideos(rows) {
       : tipoRaw.includes("ind") ? "clip_individual"
       : tipoRaw.includes("material") || tipoRaw.includes("orientador") ? "prelecao"
       : tipoRaw || "clip_individual";
-    const dataStr = r.Data || "";
+    const dataStr = findCol(r,"Data","data") || "";
     let titulo = desc || [comp, rodada].filter(Boolean).join(" - ") || `Vídeo ${i + 1}`;
     if (tipo === "treino" && dataStr) titulo = `${titulo} — ${dataStr}`;
+    const linkUrl = getLink(r);
     return {
       id: i + 1, titulo, tipo,
-      plat: r.Plataforma || r.Plat || (()=>{const l=getLink(r).toLowerCase();return l.includes("youtu")?"youtube":l.includes("vimeo")?"vimeo":l.includes("wyscout")?"wyscout":"google_drive"})(),
-      atleta: r.Atleta || "",
+      plat: findCol(r,"Plataforma","Plat") || (()=>{const l=linkUrl.toLowerCase();return l.includes("youtu")?"youtube":l.includes("vimeo")?"vimeo":l.includes("wyscout")?"wyscout":"google_drive"})(),
+      atleta: findCol(r,"Atleta","atleta") || "",
       partida: desc,
-      dur: r["Duração"] || r.Dur || "",
-      data: r.Data || "",
+      dur: findCol(r,"Duração","Dur","duracao") || "",
+      data: dataStr,
       comp, rodada,
-      link: getLink(r),
+      link: linkUrl,
       linkAlt: getLinkAlt(r),
-      responsavel: r["Responsável"] || "",
+      responsavel: findCol(r,"Responsável","Responsavel") || "",
     };
   });
+  console.log("[BFSA mapVideos] total rows:", rows.length, "with link:", mapped.length, "types:", mapped.reduce((a,v)=>{a[v.tipo]=(a[v.tipo]||0)+1;return a},{}));
+  return mapped;
 }
 
 function useSheets() {
