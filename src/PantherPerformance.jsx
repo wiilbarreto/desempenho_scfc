@@ -723,9 +723,118 @@ function BolasParadasPage() {
 // ═══════════════════════════════════════════════
 // PAGE: TREINOS
 // ═══════════════════════════════════════════════
-function TreinosPage() {
-  return <div>
-    <Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Dados serão alimentados via Google Sheets.</div></Card>
+function TreinosPage({videos=[]}) {
+  const treinos = videos.filter(v => v.tipo === "treino" && v.data);
+
+  // Parse date from "DD/MM/YYYY" format
+  function parseDate(s) {
+    const p = (s||"").split("/");
+    if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+    // try ISO
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  }
+
+  // Group treinos by date string
+  const byDate = {};
+  treinos.forEach(t => {
+    const key = t.data.trim();
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(t);
+  });
+
+  // Sort dates
+  const sortedDates = Object.keys(byDate).sort((a, b) => {
+    const da = parseDate(a), db = parseDate(b);
+    return (db||0) - (da||0);
+  });
+
+  // Group by week (Mon-Sun)
+  function getWeekStart(d) {
+    const dt = new Date(d);
+    const day = dt.getDay();
+    const diff = day === 0 ? 6 : day - 1; // Monday = 0
+    dt.setDate(dt.getDate() - diff);
+    dt.setHours(0,0,0,0);
+    return dt;
+  }
+
+  const weeks = [];
+  const weekMap = {};
+  sortedDates.forEach(dateStr => {
+    const d = parseDate(dateStr);
+    if (!d) return;
+    const ws = getWeekStart(d);
+    const wk = ws.toISOString().slice(0,10);
+    if (!weekMap[wk]) { weekMap[wk] = { start: ws, days: {} }; weeks.push(wk); }
+    weekMap[wk].days[dateStr] = byDate[dateStr];
+  });
+
+  const diasSemana = ["SEG","TER","QUA","QUI","SEX","SÁB","DOM"];
+
+  if (treinos.length === 0) return <div>
+    <Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Nenhum treino cadastrado. Sincronize com Google Sheets.</div></Card>
+  </div>;
+
+  return <div style={{display:"flex",flexDirection:"column",gap:16}}>
+    {weeks.map(wk => {
+      const week = weekMap[wk];
+      const wsDate = week.start;
+      const weDate = new Date(wsDate); weDate.setDate(weDate.getDate() + 6);
+      const fmtD = d => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+      const weekLabel = `${fmtD(wsDate)} — ${fmtD(weDate)}`;
+
+      // Build 7 days of the week
+      const weekDays = [];
+      for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(wsDate);
+        dayDate.setDate(dayDate.getDate() + i);
+        const dayStr = `${String(dayDate.getDate()).padStart(2,"0")}/${String(dayDate.getMonth()+1).padStart(2,"0")}/${dayDate.getFullYear()}`;
+        const dayTreinos = week.days[dayStr] || [];
+        weekDays.push({ label: diasSemana[i], date: dayDate, dateStr: dayStr, treinos: dayTreinos });
+      }
+
+      return <Card key={wk}>
+        <div style={{fontFamily:fontD,fontSize:13,color:C.gold,fontWeight:700,marginBottom:12,letterSpacing:"0.05em"}}>SEMANA {weekLabel}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
+          {weekDays.map((wd, i) => {
+            const isToday = new Date().toDateString() === wd.date.toDateString();
+            const hasTreino = wd.treinos.length > 0;
+            return <div key={i} style={{
+              background: isToday ? `${C.gold}15` : hasTreino ? `${C.green}10` : C.bg,
+              border: `1px solid ${isToday ? C.gold+"55" : hasTreino ? C.green+"33" : C.border}`,
+              borderRadius: 8, padding: "8px 6px", minHeight: 80, display: "flex", flexDirection: "column"
+            }}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <span style={{fontFamily:fontD,fontSize:9,color:isToday?C.gold:C.textDim,fontWeight:700,letterSpacing:"0.1em"}}>{wd.label}</span>
+                <span style={{fontFamily:font,fontSize:10,color:isToday?C.gold:C.text,fontWeight:isToday?700:400}}>{String(wd.date.getDate()).padStart(2,"0")}</span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,flex:1}}>
+                {wd.treinos.map((t, ti) => {
+                  const link = t.link || t.linkAlt || "";
+                  return <div key={ti} onClick={link?()=>window.open(link,"_blank"):undefined} style={{
+                    background: `${C.green}20`, borderRadius: 5, padding: "5px 6px",
+                    cursor: link?"pointer":"default", transition: "all 0.15s",
+                    border: `1px solid ${C.green}33`
+                  }} onMouseEnter={e=>{if(link){e.currentTarget.style.background=`${C.green}35`;e.currentTarget.style.borderColor=C.green}}}
+                     onMouseLeave={e=>{e.currentTarget.style.background=`${C.green}20`;e.currentTarget.style.borderColor=`${C.green}33`}}>
+                    <div style={{fontFamily:font,fontSize:9,color:C.text,fontWeight:600,lineHeight:1.3,marginBottom:2}}>{t.partida||t.titulo||"Treino"}</div>
+                    {link&&<div style={{display:"flex",alignItems:"center",gap:3}}>
+                      <span style={{width:4,height:4,borderRadius:"50%",background:C.green,display:"inline-block"}}/>
+                      <span style={{fontFamily:font,fontSize:7,color:C.green,fontWeight:600}}>LINK</span>
+                    </div>}
+                    {t.dur&&<div style={{fontFamily:font,fontSize:7,color:C.textDim}}>{t.dur}</div>}
+                  </div>;
+                })}
+                {!hasTreino&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{fontFamily:font,fontSize:8,color:C.textDim+"88"}}>—</span>
+                </div>}
+              </div>
+            </div>;
+          })}
+        </div>
+      </Card>;
+    })}
   </div>;
 }
 
@@ -1492,7 +1601,7 @@ export default function PantherPerformance() {
       case "prelecao": return <PrelecaoPage videos={videos} proxAdv={proxAdv}/>;
       case "partidas": return <PartidasPage videos={videos} partidas={partidas}/>;
       case "bolas-paradas": return <BolasParadasPage/>;
-      case "treinos": return <TreinosPage/>;
+      case "treinos": return <TreinosPage videos={videos}/>;
       case "atletas": return <AtletasPage nav={nav} individual={individual}/>;
       case "videos": return <VideosPage videos={videos} partidas={partidas} calendario={calendario}/>;
       case "analistas": return <AnalistasPage tarefas={tarefas} addTarefa={addTarefa} updateTarefa={updateTarefa} removeTarefa={removeTarefa} showAddTarefa={showAddTarefa} setShowAddTarefa={setShowAddTarefa}/>;
