@@ -1142,7 +1142,9 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
         const videoLink = v.link || v.linkAlt || "";
         const colors = thumbColors[v.tipo] || ["#2a2a3e","#3a3a4e"];
         const advName = v.partida || v.titulo || "";
-        const escudo = escudoMap[advName.toLowerCase()] || Object.entries(escudoMap).find(([k])=>advName.toLowerCase().includes(k))?.[1] || "";
+        const BFSA_ESCUDO = "/3154_imgbank_1685113109.png";
+        const advEscudo = escudoMap[advName.toLowerCase()] || Object.entries(escudoMap).find(([k])=>advName.toLowerCase().includes(k))?.[1] || "";
+        const escudo = advEscudo || BFSA_ESCUDO;
         return <div key={v.id} onClick={videoLink?()=>window.open(videoLink,"_blank"):undefined} style={{
           background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",
           cursor:videoLink?"pointer":"default",transition:"all 0.2s ease",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"
@@ -1155,8 +1157,8 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
             {/* Decorative pattern */}
             <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%)"}}/>
             <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"radial-gradient(circle at 20% 80%, rgba(255,255,255,0.05) 0%, transparent 40%)"}}/>
-            {/* Escudo do adversário */}
-            {escudo&&<img src={escudo} alt="" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:64,height:64,objectFit:"contain",opacity:0.15,filter:"brightness(2)"}} onError={e=>{e.target.style.display="none"}}/>}
+            {/* Escudo do adversário ou Botafogo */}
+            <img src={escudo} alt="" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:64,height:64,objectFit:"contain",opacity:0.15,filter:"brightness(2)"}} onError={e=>{e.target.style.display="none"}}/>
             {/* Stripe accent */}
             <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:`linear-gradient(90deg, ${C.gold}, ${colors[0]})`}}/>
             {/* Play button */}
@@ -1188,7 +1190,7 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
               </div>;
             })()}
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              {escudo&&<img src={escudo} alt="" style={{width:16,height:16,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>}
+              <img src={escudo} alt="" style={{width:16,height:16,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>
               {v.data&&<span style={{fontFamily:font,fontSize:9,color:C.textDim}}>{v.data}{v.comp?` · ${v.comp}`:""}{v.rodada?` · ${v.rodada}`:""}</span>}
             </div>
           </div>
