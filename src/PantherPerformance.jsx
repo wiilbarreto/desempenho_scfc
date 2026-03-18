@@ -181,6 +181,7 @@ function mapVideos(rows) {
       : tipoRaw.includes("relat") ? "analise_adversario"
       : tipoRaw.includes("prelec") ? "prelecao"
       : (tipoRaw.includes("adv") || tipoRaw.includes("análise de adv") || tipoRaw.includes("analise de adv")) ? "analise_adversario"
+      : (tipoRaw.includes("bola") || tipoRaw.includes("parada")) && tipoRaw.includes("goleiro") ? "bola_parada_goleiro"
       : tipoRaw.includes("bola") || tipoRaw.includes("parada") ? "bola_parada"
       : tipoRaw.includes("modelo") ? "modelo_jogo"
       : tipoRaw.includes("treino") ? "treino"
@@ -1115,8 +1116,8 @@ function AtletaDetailPage({id,onBack,videos=[],partidas=[],individual=[]}) {
 function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],calendario=[]}) {
   const [search,setSearch]=useState("");
   const [ft,setFt]=useState("TODOS");
-  const tipos=["TODOS","jogo_completo","clip_individual","analise_adversario","treino","prelecao","bola_parada","modelo_jogo"];
-  const tipoLabel={jogo_completo:"Jogos",clip_individual:"Individual",analise_adversario:"Adversário",treino:"Treinos",prelecao:"Preleção",bola_parada:"Bola Parada",modelo_jogo:"Modelo Jogo"};
+  const tipos=["TODOS","jogo_completo","clip_individual","analise_adversario","treino","prelecao","bola_parada","bola_parada_goleiro","modelo_jogo"];
+  const tipoLabel={jogo_completo:"Jogos",clip_individual:"Individual",analise_adversario:"Adversário",treino:"Treinos",prelecao:"Preleção",bola_parada:"Bola Parada",bola_parada_goleiro:"BP Goleiro",modelo_jogo:"Modelo Jogo"};
   const filtered=videos.filter(v=>(v.titulo.toLowerCase().includes(search.toLowerCase()))&&(ft==="TODOS"||v.tipo===ft));
   const escudoMap=useMemo(()=>Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv?.toLowerCase(),x.escudo])),[partidas,calendario]);
 
@@ -1128,6 +1129,7 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
     treino:["#1b5e20","#2e7d32"],
     prelecao:["#e65100","#ff6d00"],
     bola_parada:["#4a148c","#7b1fa2"],
+    bola_parada_goleiro:["#1a237e","#283593"],
     modelo_jogo:["#01579b","#0288d1"],
   };
   // Platform icons mapping
@@ -1142,7 +1144,9 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
         const videoLink = v.link || v.linkAlt || "";
         const colors = thumbColors[v.tipo] || ["#2a2a3e","#3a3a4e"];
         const advName = v.partida || v.titulo || "";
-        const escudo = escudoMap[advName.toLowerCase()] || Object.entries(escudoMap).find(([k])=>advName.toLowerCase().includes(k))?.[1] || "";
+        const BFSA_ESCUDO = "/3154_imgbank_1685113109.png";
+        const advEscudo = escudoMap[advName.toLowerCase()] || Object.entries(escudoMap).find(([k])=>advName.toLowerCase().includes(k))?.[1] || "";
+        const escudo = advEscudo || BFSA_ESCUDO;
         return <div key={v.id} onClick={videoLink?()=>window.open(videoLink,"_blank"):undefined} style={{
           background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",
           cursor:videoLink?"pointer":"default",transition:"all 0.2s ease",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"
@@ -1155,8 +1159,8 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
             {/* Decorative pattern */}
             <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%)"}}/>
             <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"radial-gradient(circle at 20% 80%, rgba(255,255,255,0.05) 0%, transparent 40%)"}}/>
-            {/* Escudo do adversário */}
-            {escudo&&<img src={escudo} alt="" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:64,height:64,objectFit:"contain",opacity:0.15,filter:"brightness(2)"}} onError={e=>{e.target.style.display="none"}}/>}
+            {/* Escudo do adversário ou Botafogo */}
+            <img src={escudo} alt="" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:64,height:64,objectFit:"contain",opacity:0.15,filter:"brightness(2)"}} onError={e=>{e.target.style.display="none"}}/>
             {/* Stripe accent */}
             <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:`linear-gradient(90deg, ${C.gold}, ${colors[0]})`}}/>
             {/* Play button */}
@@ -1188,7 +1192,7 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
               </div>;
             })()}
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              {escudo&&<img src={escudo} alt="" style={{width:16,height:16,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>}
+              <img src={escudo} alt="" style={{width:16,height:16,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>
               {v.data&&<span style={{fontFamily:font,fontSize:9,color:C.textDim}}>{v.data}{v.comp?` · ${v.comp}`:""}{v.rodada?` · ${v.rodada}`:""}</span>}
             </div>
           </div>
