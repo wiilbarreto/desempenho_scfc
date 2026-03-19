@@ -723,9 +723,202 @@ function BolasParadasPage() {
 // ═══════════════════════════════════════════════
 // PAGE: TREINOS
 // ═══════════════════════════════════════════════
-function TreinosPage() {
-  return <div>
-    <Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Dados serão alimentados via Google Sheets.</div></Card>
+function parseDateBR(s) {
+  const p = (s||"").trim().split("/");
+  if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function fmtDateKey(d) {
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+}
+function getWeekStart(d) {
+  const dt = new Date(d); dt.setHours(0,0,0,0);
+  const day = dt.getDay();
+  dt.setDate(dt.getDate() - (day === 0 ? 6 : day - 1));
+  return dt;
+}
+
+function TreinosPage({videos=[],partidas=[],calendario=[]}) {
+  const treinos = videos.filter(v => v.tipo === "treino" && v.data);
+  const jogos = [...partidas, ...calendario];
+
+  // Weekly tasks stored in localStorage
+  const [weekTasks, setWeekTasks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bfsa_week_tasks") || "{}"); } catch { return {}; }
+  });
+  const [addingTask, setAddingTask] = useState(null); // dateStr of the day being edited
+  const [taskInput, setTaskInput] = useState("");
+
+  const saveWeekTasks = (t) => { setWeekTasks(t); localStorage.setItem("bfsa_week_tasks", JSON.stringify(t)); };
+
+  const addTask = (dateStr) => {
+    if (!taskInput.trim()) return;
+    const updated = { ...weekTasks };
+    if (!updated[dateStr]) updated[dateStr] = [];
+    updated[dateStr].push({ text: taskInput.trim(), done: false, id: Date.now() });
+    saveWeekTasks(updated);
+    setTaskInput("");
+    setAddingTask(null);
+  };
+  const toggleTask = (dateStr, id) => {
+    const updated = { ...weekTasks };
+    const task = (updated[dateStr]||[]).find(t => t.id === id);
+    if (task) { task.done = !task.done; saveWeekTasks(updated); }
+  };
+  const removeTask = (dateStr, id) => {
+    const updated = { ...weekTasks };
+    updated[dateStr] = (updated[dateStr]||[]).filter(t => t.id !== id);
+    if (updated[dateStr].length === 0) delete updated[dateStr];
+    saveWeekTasks(updated);
+  };
+
+  // Group treinos and jogos by date
+  const treinosByDate = {};
+  treinos.forEach(t => { const k = t.data.trim(); if (!treinosByDate[k]) treinosByDate[k] = []; treinosByDate[k].push(t); });
+  const jogosByDate = {};
+  jogos.forEach(j => { const k = (j.data||"").trim(); if (k) { if (!jogosByDate[k]) jogosByDate[k] = []; jogosByDate[k].push(j); } });
+
+  // Collect all dates that have data
+  const allDates = new Set([...Object.keys(treinosByDate), ...Object.keys(jogosByDate)]);
+
+  // Build weeks from all relevant dates + current week
+  const weekMap = {};
+  const weekOrder = [];
+  const addWeek = (d) => {
+    const ws = getWeekStart(d);
+    const wk = ws.toISOString().slice(0,10);
+    if (!weekMap[wk]) { weekMap[wk] = ws; weekOrder.push(wk); }
+  };
+  // Always include current week
+  addWeek(new Date());
+  allDates.forEach(ds => { const d = parseDateBR(ds); if (d) addWeek(d); });
+  weekOrder.sort((a, b) => b.localeCompare(a)); // most recent first
+
+  const diasSemana = ["SEG","TER","QUA","QUI","SEX","SÁB","DOM"];
+
+  // Escudo map for jogos
+  const escudoMap = Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv?.toLowerCase(),x.escudo]));
+
+  return <div style={{display:"flex",flexDirection:"column",gap:16}}>
+    {weekOrder.map(wk => {
+      const wsDate = weekMap[wk];
+      const weDate = new Date(wsDate); weDate.setDate(weDate.getDate() + 6);
+      const fmtD = d => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+
+      const weekDays = [];
+      for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(wsDate); dayDate.setDate(dayDate.getDate() + i);
+        const dayStr = fmtDateKey(dayDate);
+        weekDays.push({
+          label: diasSemana[i], date: dayDate, dateStr: dayStr,
+          treinos: treinosByDate[dayStr] || [],
+          jogos: jogosByDate[dayStr] || [],
+          tasks: weekTasks[dayStr] || [],
+        });
+      }
+
+      const hasContent = weekDays.some(d => d.treinos.length > 0 || d.jogos.length > 0 || d.tasks.length > 0) || wk === getWeekStart(new Date()).toISOString().slice(0,10);
+      if (!hasContent) return null;
+
+      return <Card key={wk}>
+        <div style={{fontFamily:fontD,fontSize:13,color:C.gold,fontWeight:700,marginBottom:12,letterSpacing:"0.05em"}}>
+          SEMANA {fmtD(wsDate)} — {fmtD(weDate)}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
+          {weekDays.map((wd, i) => {
+            const isToday = new Date().toDateString() === wd.date.toDateString();
+            const hasJogo = wd.jogos.length > 0;
+            const hasTreino = wd.treinos.length > 0;
+            const bgColor = isToday ? `${C.gold}12` : hasJogo ? `${C.red}08` : hasTreino ? `${C.green}08` : C.bg;
+            const borderColor = isToday ? C.gold+"55" : hasJogo ? C.red+"33" : hasTreino ? C.green+"33" : C.border;
+
+            return <div key={i} style={{
+              background: bgColor, border: `1px solid ${borderColor}`,
+              borderRadius: 8, padding: "8px 6px", minHeight: 110, display: "flex", flexDirection: "column"
+            }}>
+              {/* Day header */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <span style={{fontFamily:fontD,fontSize:9,color:isToday?C.gold:C.textDim,fontWeight:700,letterSpacing:"0.1em"}}>{wd.label}</span>
+                <span style={{fontFamily:font,fontSize:10,color:isToday?C.gold:C.text,fontWeight:isToday?700:400}}>{String(wd.date.getDate()).padStart(2,"0")}</span>
+              </div>
+
+              <div style={{display:"flex",flexDirection:"column",gap:4,flex:1}}>
+                {/* Jogos */}
+                {wd.jogos.map((j, ji) => {
+                  const esc = escudoMap[j.adv?.toLowerCase()] || "";
+                  return <div key={`j${ji}`} style={{
+                    background: `${C.red}18`, borderRadius: 5, padding: "5px 6px",
+                    border: `1px solid ${C.red}33`, display:"flex", alignItems:"center", gap:5
+                  }}>
+                    {esc ? <img src={esc} alt="" style={{width:14,height:14,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/> : <Crosshair size={10} color={C.red}/>}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:font,fontSize:8,color:C.red,fontWeight:700,textTransform:"uppercase",marginBottom:1}}>JOGO</div>
+                      <div style={{fontFamily:font,fontSize:9,color:C.text,fontWeight:600,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.adv}</div>
+                      {j.comp&&<div style={{fontFamily:font,fontSize:7,color:C.textDim}}>{j.comp} {j.rodada||""}</div>}
+                    </div>
+                  </div>;
+                })}
+
+                {/* Treinos */}
+                {wd.treinos.map((t, ti) => {
+                  const link = t.link || t.linkAlt || "";
+                  return <div key={`t${ti}`} onClick={link?()=>window.open(link,"_blank"):undefined} style={{
+                    background: `${C.green}18`, borderRadius: 5, padding: "5px 6px",
+                    cursor: link?"pointer":"default", transition: "all 0.15s",
+                    border: `1px solid ${C.green}33`
+                  }} onMouseEnter={e=>{if(link){e.currentTarget.style.background=`${C.green}30`;e.currentTarget.style.borderColor=C.green}}}
+                     onMouseLeave={e=>{e.currentTarget.style.background=`${C.green}18`;e.currentTarget.style.borderColor=`${C.green}33`}}>
+                    <div style={{fontFamily:font,fontSize:8,color:C.green,fontWeight:700,textTransform:"uppercase",marginBottom:1}}>TREINO</div>
+                    <div style={{fontFamily:font,fontSize:9,color:C.text,fontWeight:600,lineHeight:1.2,marginBottom:2}}>{t.partida||t.titulo||"Treino"}</div>
+                    {link&&<div style={{display:"flex",alignItems:"center",gap:3}}>
+                      <span style={{width:4,height:4,borderRadius:"50%",background:C.green,display:"inline-block"}}/>
+                      <span style={{fontFamily:font,fontSize:7,color:C.green,fontWeight:600}}>LINK</span>
+                    </div>}
+                  </div>;
+                })}
+
+                {/* Tasks */}
+                {wd.tasks.map(task => (
+                  <div key={task.id} style={{display:"flex",alignItems:"flex-start",gap:4,padding:"3px 0"}}>
+                    <input type="checkbox" checked={task.done} onChange={()=>toggleTask(wd.dateStr,task.id)}
+                      style={{margin:"2px 0 0",cursor:"pointer",accentColor:C.gold,flexShrink:0,width:12,height:12}}/>
+                    <span style={{fontFamily:font,fontSize:9,color:task.done?C.textDim:C.text,textDecoration:task.done?"line-through":"none",lineHeight:1.3,flex:1,wordBreak:"break-word"}}>{task.text}</span>
+                    <button onClick={()=>removeTask(wd.dateStr,task.id)} style={{background:"none",border:"none",cursor:"pointer",padding:0,lineHeight:1,color:C.textDim,fontSize:10,flexShrink:0}} title="Remover">×</button>
+                  </div>
+                ))}
+
+                {/* Add task */}
+                {addingTask===wd.dateStr ? (
+                  <div style={{display:"flex",flexDirection:"column",gap:3,marginTop:2}}>
+                    <input autoFocus value={taskInput} onChange={e=>setTaskInput(e.target.value)}
+                      onKeyDown={e=>{if(e.key==="Enter")addTask(wd.dateStr);if(e.key==="Escape"){setAddingTask(null);setTaskInput("");}}}
+                      placeholder="Tarefa..."
+                      style={{fontFamily:font,fontSize:9,padding:"4px 6px",borderRadius:4,border:`1px solid ${C.gold}55`,background:C.bg,color:C.text,outline:"none",width:"100%",boxSizing:"border-box"}}/>
+                    <div style={{display:"flex",gap:3}}>
+                      <button onClick={()=>addTask(wd.dateStr)} style={{flex:1,fontFamily:font,fontSize:8,padding:"3px",borderRadius:3,border:"none",background:C.gold,color:"#000",cursor:"pointer",fontWeight:600}}>OK</button>
+                      <button onClick={()=>{setAddingTask(null);setTaskInput("");}} style={{flex:1,fontFamily:font,fontSize:8,padding:"3px",borderRadius:3,border:`1px solid ${C.border}`,background:"none",color:C.textDim,cursor:"pointer"}}>X</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div onClick={()=>{setAddingTask(wd.dateStr);setTaskInput("");}}
+                    style={{marginTop:"auto",paddingTop:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:3,opacity:0.5,transition:"opacity 0.15s"}}
+                    onMouseEnter={e=>e.currentTarget.style.opacity=1} onMouseLeave={e=>e.currentTarget.style.opacity=0.5}>
+                    <Plus size={10} color={C.textDim}/>
+                    <span style={{fontFamily:font,fontSize:8,color:C.textDim}}>tarefa</span>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!hasTreino && !hasJogo && wd.tasks.length === 0 && addingTask !== wd.dateStr && (
+                  <div style={{flex:1}}/>
+                )}
+              </div>
+            </div>;
+          })}
+        </div>
+      </Card>;
+    })}
   </div>;
 }
 
@@ -1492,7 +1685,7 @@ export default function PantherPerformance() {
       case "prelecao": return <PrelecaoPage videos={videos} proxAdv={proxAdv}/>;
       case "partidas": return <PartidasPage videos={videos} partidas={partidas}/>;
       case "bolas-paradas": return <BolasParadasPage/>;
-      case "treinos": return <TreinosPage/>;
+      case "treinos": return <TreinosPage videos={videos} partidas={partidas} calendario={calendario}/>;
       case "atletas": return <AtletasPage nav={nav} individual={individual}/>;
       case "videos": return <VideosPage videos={videos} partidas={partidas} calendario={calendario}/>;
       case "analistas": return <AnalistasPage tarefas={tarefas} addTarefa={addTarefa} updateTarefa={updateTarefa} removeTarefa={removeTarefa} showAddTarefa={showAddTarefa} setShowAddTarefa={setShowAddTarefa}/>;
