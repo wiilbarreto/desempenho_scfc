@@ -624,7 +624,10 @@ function AdvPdfUpload() {
       if(!res.ok) throw new Error(data.detail||"Erro ao importar");
       setStatus("success");setResult(data);setFile(null);
     } catch(err){
-      setStatus("error");setResult({message:err.message||"Erro de conexão com o servidor."});
+      const msg = err.message && err.message.includes("Failed to fetch")
+        ? "Backend não acessível. Rode 'python backend_api.py' no servidor ou configure REACT_APP_API_URL."
+        : err.message || "Erro de conexão com o servidor.";
+      setStatus("error");setResult({message:msg});
     }
   };
 
