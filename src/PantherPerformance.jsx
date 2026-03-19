@@ -13,6 +13,7 @@ import {
   BookOpen, Send, Settings, ChevronDown, ChevronUp, Layers,
   Dumbbell, Circle, MapPin, Lock, Clipboard, Package, User,
   CheckSquare, XCircle, Timer, RefreshCw, Sun, Moon, Trash2, Edit3,
+  ExternalLink, Link2,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════
@@ -599,11 +600,13 @@ const FIXED_CHECKLIST = [
   {label:"Descritivo individual",fixed:true},
 ];
 
-function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklist}) {
+function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklist,advLinks={},setAdvLinks}) {
   const escudoMap=Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv,x.escudo]));
   const [editingIdx,setEditingIdx]=useState(null);
   const [editVal,setEditVal]=useState("");
   const [newItem,setNewItem]=useState("");
+  const [editingLink,setEditingLink]=useState(null);
+  const [linkVal,setLinkVal]=useState("");
 
   // Merge fixed items with user-added items; fixed items always appear first
   const mergedChecklist = useMemo(()=>{
@@ -665,7 +668,65 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
         </div>
       </div>
     </Card>
+    {/* Brasileiro Série B — jogos a avaliar com links */}
     <Card>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <CompLogo comp="Série B" size={22}/>
+        <SH title="Brasileiro Série B — Jogos do Adversário"/>
+      </div>
+      <div style={{fontFamily:font,fontSize:11,color:C.textDim,marginBottom:12}}>
+        Insira os links dos jogos do adversário que serão avaliados para a análise.
+      </div>
+      {calendario.filter(c=>(c.comp||"").toLowerCase().includes("série b")||(c.comp||"").toLowerCase().includes("serie b")).map((c,i)=>{
+        const key = `${c.adv}_${c.rodada}`;
+        const link = advLinks[key] || "";
+        const isEditing = editingLink === key;
+        return (
+          <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:6,marginBottom:6,border:`1px solid ${C.border}`,background:link?`${C.green}06`:C.bgCard}}>
+            <Escudo src={c.escudo||escudoMap[c.adv]} size={22}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:font,fontSize:12,color:C.text,fontWeight:600}}>{c.adv}</div>
+              <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>{c.rodada} · {c.data} · {c.local==="C"?"Casa":"Fora"}</div>
+              {link && !isEditing && (
+                <div style={{marginTop:4,display:"flex",alignItems:"center",gap:4}}>
+                  <Link2 size={10} color={C.blue}/>
+                  <a href={link} target="_blank" rel="noopener noreferrer" style={{fontFamily:font,fontSize:10,color:C.blue,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:300}} onClick={e=>e.stopPropagation()}>{link}</a>
+                </div>
+              )}
+              {isEditing && (
+                <div style={{marginTop:4,display:"flex",alignItems:"center",gap:4}}>
+                  <input value={linkVal} onChange={e=>setLinkVal(e.target.value)} placeholder="https://..." autoFocus
+                    onKeyDown={e=>{if(e.key==="Enter"){setAdvLinks({...advLinks,[key]:linkVal.trim()});setEditingLink(null);}if(e.key==="Escape")setEditingLink(null);}}
+                    onBlur={()=>{setAdvLinks({...advLinks,[key]:linkVal.trim()});setEditingLink(null);}}
+                    style={{flex:1,fontFamily:font,fontSize:11,color:C.text,background:C.bgCard,border:`1px solid ${C.blue}44`,borderRadius:4,padding:"4px 8px",outline:"none"}}/>
+                </div>
+              )}
+            </div>
+            <div style={{display:"flex",gap:4,flexShrink:0}}>
+              {link && !isEditing && (
+                <div onClick={()=>window.open(link,"_blank")} style={{cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",width:28,height:28,borderRadius:4,background:`${C.blue}15`,border:`1px solid ${C.blue}33`}} title="Abrir link">
+                  <ExternalLink size={13} color={C.blue}/>
+                </div>
+              )}
+              <div onClick={()=>{setEditingLink(isEditing?null:key);setLinkVal(link);}} style={{cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",width:28,height:28,borderRadius:4,background:isEditing?`${C.yellow}22`:`${C.textDim}15`,border:`1px solid ${isEditing?C.yellow:C.textDim}33`}} title={link?"Editar link":"Adicionar link"}>
+                {link?<Edit3 size={13} color={isEditing?C.yellow:C.textDim}/>:<Plus size={13} color={C.textDim}/>}
+              </div>
+              {link && <div onClick={()=>{setAdvLinks({...advLinks,[key]:""});}} style={{cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",width:28,height:28,borderRadius:4,background:`${C.red}15`,border:`1px solid ${C.red}33`}} title="Remover link">
+                <Trash2 size={13} color={C.red}/>
+              </div>}
+            </div>
+          </div>
+        );
+      })}
+      {calendario.filter(c=>(c.comp||"").toLowerCase().includes("série b")||(c.comp||"").toLowerCase().includes("serie b")).length===0 && (
+        <div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:16,textAlign:"center",background:C.bg,borderRadius:6,border:`1px solid ${C.border}`}}>
+          Nenhum jogo do Brasileiro Série B no calendário ainda. Sincronize com Google Sheets.
+        </div>
+      )}
+    </Card>
+
+    {/* Análises Anteriores — Paulistão (histórico) */}
+    {partidas.filter(p=>p.adversarioDone).length > 0 && <Card>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
         <CompLogo comp="Paulistão" size={22}/>
         <SH title="Análises Anteriores — Paulistão"/>
@@ -682,7 +743,7 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
           <Badge color={C.green}>COMPLETA</Badge>
         </div>
       ))}
-    </Card>
+    </Card>}
   </div>;
 }
 
@@ -1746,6 +1807,7 @@ export default function PantherPerformance() {
   const [showAddTarefa,setShowAddTarefa]=useState(false);
   const [isDark,setIsDark]=useState(()=>{try{return localStorage.getItem("bfsa_dark")==="true"}catch{return false}});
   const [advChecklist,setAdvChecklist]=useState(()=>{try{const s=localStorage.getItem("bfsa_advChecklist");return s?JSON.parse(s):[]}catch{return[]}});
+  const [advLinks,setAdvLinks]=useState(()=>{try{const s=localStorage.getItem("bfsa_advLinks");return s?JSON.parse(s):{}}catch{return{}}});
   const sheets = useSheets();
 
   const handleLogin=(u)=>{sessionStorage.setItem("bfsa_user",u);setAuthedUser(u);if(isAthleteUser(u))setPage("videos")};
@@ -1757,6 +1819,7 @@ export default function PantherPerformance() {
   useEffect(()=>{const t=setInterval(()=>setTime(new Date()),60000);return()=>clearInterval(t)},[]);
   useEffect(()=>{if(authedUser) sheets.sync()},[authedUser]);// eslint-disable-line
   useEffect(()=>{try{localStorage.setItem("bfsa_advChecklist",JSON.stringify(advChecklist))}catch{}},[advChecklist]);
+  useEffect(()=>{try{localStorage.setItem("bfsa_advLinks",JSON.stringify(advLinks))}catch{}},[advLinks]);
   useEffect(()=>{try{localStorage.setItem("bfsa_dark",isDark?"true":"false")}catch{}},[isDark]);
 
   if(!authedUser) return <LoginPage onLogin={handleLogin}/>;
@@ -1797,7 +1860,7 @@ export default function PantherPerformance() {
     switch(page){
       case "dashboard": return <DashboardPage nav={nav} tarefas={tarefas} videos={videos} partidas={partidas} proxAdv={proxAdv} individual={individual}/>;
       case "modelo-jogo": return <ModeloJogoPage/>;
-      case "adversario": return <AdversarioPage partidas={partidas} calendario={calendario} proxAdv={proxAdv} checklist={advChecklist} setChecklist={setAdvChecklist}/>;
+      case "adversario": return <AdversarioPage partidas={partidas} calendario={calendario} proxAdv={proxAdv} checklist={advChecklist} setChecklist={setAdvChecklist} advLinks={advLinks} setAdvLinks={setAdvLinks}/>;
       case "prelecao": return <PrelecaoPage videos={videos} proxAdv={proxAdv}/>;
       case "partidas": return <PartidasPage videos={videos} partidas={partidas}/>;
       case "bolas-paradas": return <BolasParadasPage/>;
