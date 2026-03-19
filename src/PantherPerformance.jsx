@@ -295,6 +295,31 @@ const font = "'Inter','DM Sans','Helvetica Neue',Arial,sans-serif";
 const fontD = "'DM Sans','Inter','Helvetica Neue',sans-serif";
 
 // ═══════════════════════════════════════════════
+// LOGOS DE COMPETIÇÃO
+// ═══════════════════════════════════════════════
+const COMP_LOGOS = {
+  "série b": "https://cdn-img.zerozero.pt/img/logos/competicoes/154_imgbank_sb_20250307193556.png",
+  "serie b": "https://cdn-img.zerozero.pt/img/logos/competicoes/154_imgbank_sb_20250307193556.png",
+  "brasileirão série b": "https://cdn-img.zerozero.pt/img/logos/competicoes/154_imgbank_sb_20250307193556.png",
+  "paulistão": "https://upload.wikimedia.org/wikipedia/pt/1/1c/Paulistão_2026.png",
+  "paulistao": "https://upload.wikimedia.org/wikipedia/pt/1/1c/Paulistão_2026.png",
+  "campeonato paulista": "https://upload.wikimedia.org/wikipedia/pt/1/1c/Paulistão_2026.png",
+};
+function getCompLogo(comp) {
+  if (!comp) return null;
+  const c = comp.toLowerCase().trim();
+  for (const [key, url] of Object.entries(COMP_LOGOS)) {
+    if (c.includes(key) || key.includes(c)) return url;
+  }
+  return null;
+}
+function CompLogo({comp, size=14, style={}}) {
+  const logo = getCompLogo(comp);
+  if (!logo) return null;
+  return <img src={logo} alt="" style={{width:size,height:size,objectFit:"contain",verticalAlign:"middle",...style}} onError={e=>{e.target.style.display="none"}}/>;
+}
+
+// ═══════════════════════════════════════════════
 // DATA — Paulistão 2026 (Wyscout real) + contexto BFSA
 // ═══════════════════════════════════════════════
 const PB = "https://raw.githubusercontent.com/caiofelipead/performance_dashboard/main/public/players/";
@@ -443,7 +468,7 @@ function DashboardPage({nav,tarefas=[],videos=[],partidas=[],proxAdv,individual=
           </div>
           <div style={{flex:1}}>
             <div style={{fontFamily:fontD,fontSize:22,color:C.text,fontWeight:700}}>{proxAdv.nome}</div>
-            <div style={{fontFamily:font,fontSize:11,color:C.textDim}}>{proxAdv.comp} · {proxAdv.data} · {proxAdv.form}</div>
+            <div style={{fontFamily:font,fontSize:11,color:C.textDim,display:"flex",alignItems:"center",gap:4}}><CompLogo comp={proxAdv.comp} size={14}/>{proxAdv.comp} · {proxAdv.data} · {proxAdv.form}</div>
             <div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
               <ProgressBar pct={proxAdv.progresso} color={C.yellow}/>
               <span style={{fontFamily:fontD,fontSize:14,color:C.yellow}}>{proxAdv.progresso}%</span>
@@ -606,7 +631,7 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
         </div>
         <div style={{flex:1}}>
           <div style={{fontFamily:fontD,fontSize:26,color:C.text,fontWeight:700}}>{proxAdv.nome}</div>
-          <div style={{fontFamily:font,fontSize:12,color:C.textDim}}>{proxAdv.comp} · {proxAdv.data} · Formação esperada: {proxAdv.form}</div>
+          <div style={{fontFamily:font,fontSize:12,color:C.textDim,display:"flex",alignItems:"center",gap:4}}><CompLogo comp={proxAdv.comp} size={16}/>{proxAdv.comp} · {proxAdv.data} · Formação esperada: {proxAdv.form}</div>
           <div style={{marginTop:10,display:"flex",alignItems:"center",gap:10}}>
             <ProgressBar pct={proxAdv.progresso} color={proxAdv.progresso>=80?C.green:C.yellow}/>
             <span style={{fontFamily:fontD,fontSize:16,color:C.yellow}}>{proxAdv.progresso}%</span>
@@ -641,7 +666,7 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
       </div>
     </Card>
     <Card>
-      <SH title="Análises Anteriores — Paulistão"/>
+      <div style={{display:"flex",alignItems:"center",gap:6}}><SH title="Análises Anteriores — Paulistão"/><CompLogo comp="Paulistão" size={18}/></div>
       {partidas.filter(p=>p.adversarioDone).map(p=>(
         <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:4,marginBottom:4,border:`1px solid ${C.border}`}}>
           <ResBadge r={p.res}/>
@@ -900,7 +925,7 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontFamily:font,fontSize:8,color:C.red,fontWeight:700,textTransform:"uppercase",marginBottom:1}}>JOGO</div>
                         <div style={{fontFamily:font,fontSize:9,color:C.text,fontWeight:600,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.adv}</div>
-                        {j.comp&&<div style={{fontFamily:font,fontSize:7,color:C.textDim}}>{j.comp} {j.rodada||""}</div>}
+                        {j.comp&&<div style={{fontFamily:font,fontSize:7,color:C.textDim,display:"flex",alignItems:"center",gap:2}}><CompLogo comp={j.comp} size={9}/>{j.comp} {j.rodada||""}</div>}
                       </div>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
                         <div style={{fontFamily:font,fontSize:8,color:doneCount===totalCount?C.green:C.gold,fontWeight:700}}>{doneCount}/{totalCount}</div>
@@ -1459,7 +1484,7 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
             })()}
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <img src={escudo} alt="" style={{width:16,height:16,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>
-              {v.data&&<span style={{fontFamily:font,fontSize:9,color:C.textDim}}>{v.data}{v.comp?` · ${v.comp}`:""}{v.rodada?` · ${v.rodada}`:""}</span>}
+              {v.data&&<span style={{fontFamily:font,fontSize:9,color:C.textDim,display:"inline-flex",alignItems:"center",gap:3}}>{v.data}{v.comp&&<><CompLogo comp={v.comp} size={10}/> {v.comp}</>}{v.rodada?` · ${v.rodada}`:""}</span>}
             </div>
           </div>
         </div>;
