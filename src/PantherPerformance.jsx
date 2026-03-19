@@ -726,8 +726,16 @@ function BolasParadasPage() {
 function parseDateBR(s) {
   const p = (s||"").trim().split("/");
   if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+  // DD/MM without year — assume current year
+  if (p.length === 2 && p[0] && p[1]) return new Date(new Date().getFullYear(), +p[1]-1, +p[0]);
   const d = new Date(s);
   return isNaN(d) ? null : d;
+}
+function normDateKey(s) {
+  // Normalize any date string to DD/MM/YYYY
+  const d = parseDateBR(s);
+  if (!d || isNaN(d)) return (s||"").trim();
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
 }
 function fmtDateKey(d) {
   return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
@@ -739,6 +747,17 @@ function getWeekStart(d) {
   return dt;
 }
 
+const PRAZO_LABELS = [
+  {key:"adv",label:"ADV",tip:"Análise Adversário"},
+  {key:"pre",label:"PRE",tip:"Preleção"},
+  {key:"pos",label:"PÓS",tip:"Pós-Jogo"},
+  {key:"dat",label:"DAT",tip:"Dados/Estatísticas"},
+  {key:"wys",label:"WYS",tip:"Wyscout"},
+  {key:"tre",label:"TRE",tip:"Treino"},
+  {key:"bsp",label:"BSP",tip:"Bolas Paradas"},
+  {key:"ind",label:"IND",tip:"Individual"},
+];
+
 function TreinosPage({videos=[],partidas=[],calendario=[]}) {
   const treinos = videos.filter(v => v.tipo === "treino" && v.data);
   const jogos = [...partidas, ...calendario];
@@ -747,10 +766,24 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
   const [weekTasks, setWeekTasks] = useState(() => {
     try { return JSON.parse(localStorage.getItem("bfsa_week_tasks") || "{}"); } catch { return {}; }
   });
-  const [addingTask, setAddingTask] = useState(null); // dateStr of the day being edited
+  const [addingTask, setAddingTask] = useState(null);
   const [taskInput, setTaskInput] = useState("");
 
+  // Deadline/prazo toggles stored in localStorage per jogo
+  const [prazos, setPrazos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bfsa_prazos") || "{}"); } catch { return {}; }
+  });
+  const [expandedJogo, setExpandedJogo] = useState(null);
+
   const saveWeekTasks = (t) => { setWeekTasks(t); localStorage.setItem("bfsa_week_tasks", JSON.stringify(t)); };
+  const savePrazos = (p) => { setPrazos(p); localStorage.setItem("bfsa_prazos", JSON.stringify(p)); };
+
+  const togglePrazo = (jogoKey, field) => {
+    const updated = { ...prazos };
+    if (!updated[jogoKey]) updated[jogoKey] = {};
+    updated[jogoKey][field] = !updated[jogoKey][field];
+    savePrazos(updated);
+  };
 
   const addTask = (dateStr) => {
     if (!taskInput.trim()) return;
@@ -773,16 +806,15 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
     saveWeekTasks(updated);
   };
 
-  // Group treinos and jogos by date
+  // Group treinos and jogos by normalized date key
   const treinosByDate = {};
-  treinos.forEach(t => { const k = t.data.trim(); if (!treinosByDate[k]) treinosByDate[k] = []; treinosByDate[k].push(t); });
+  treinos.forEach(t => { const k = normDateKey(t.data); if (!treinosByDate[k]) treinosByDate[k] = []; treinosByDate[k].push(t); });
   const jogosByDate = {};
-  jogos.forEach(j => { const k = (j.data||"").trim(); if (k) { if (!jogosByDate[k]) jogosByDate[k] = []; jogosByDate[k].push(j); } });
+  jogos.forEach(j => { const k = normDateKey(j.data); if (k) { if (!jogosByDate[k]) jogosByDate[k] = []; jogosByDate[k].push(j); } });
 
-  // Collect all dates that have data
+  // Collect all dates
   const allDates = new Set([...Object.keys(treinosByDate), ...Object.keys(jogosByDate)]);
 
-  // Build weeks from all relevant dates + current week
   const weekMap = {};
   const weekOrder = [];
   const addWeek = (d) => {
@@ -790,14 +822,11 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
     const wk = ws.toISOString().slice(0,10);
     if (!weekMap[wk]) { weekMap[wk] = ws; weekOrder.push(wk); }
   };
-  // Always include current week
   addWeek(new Date());
   allDates.forEach(ds => { const d = parseDateBR(ds); if (d) addWeek(d); });
-  weekOrder.sort((a, b) => b.localeCompare(a)); // most recent first
+  weekOrder.sort((a, b) => b.localeCompare(a));
 
   const diasSemana = ["SEG","TER","QUA","QUI","SEX","SÁB","DOM"];
-
-  // Escudo map for jogos
   const escudoMap = Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv?.toLowerCase(),x.escudo]));
 
   return <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -837,26 +866,63 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
               background: bgColor, border: `1px solid ${borderColor}`,
               borderRadius: 8, padding: "8px 6px", minHeight: 110, display: "flex", flexDirection: "column"
             }}>
-              {/* Day header */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                 <span style={{fontFamily:fontD,fontSize:9,color:isToday?C.gold:C.textDim,fontWeight:700,letterSpacing:"0.1em"}}>{wd.label}</span>
                 <span style={{fontFamily:font,fontSize:10,color:isToday?C.gold:C.text,fontWeight:isToday?700:400}}>{String(wd.date.getDate()).padStart(2,"0")}</span>
               </div>
 
               <div style={{display:"flex",flexDirection:"column",gap:4,flex:1}}>
-                {/* Jogos */}
+                {/* Jogos with prazo selectors */}
                 {wd.jogos.map((j, ji) => {
                   const esc = escudoMap[j.adv?.toLowerCase()] || "";
-                  return <div key={`j${ji}`} style={{
-                    background: `${C.red}18`, borderRadius: 5, padding: "5px 6px",
-                    border: `1px solid ${C.red}33`, display:"flex", alignItems:"center", gap:5
-                  }}>
-                    {esc ? <img src={esc} alt="" style={{width:14,height:14,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/> : <Crosshair size={10} color={C.red}/>}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:font,fontSize:8,color:C.red,fontWeight:700,textTransform:"uppercase",marginBottom:1}}>JOGO</div>
-                      <div style={{fontFamily:font,fontSize:9,color:C.text,fontWeight:600,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.adv}</div>
-                      {j.comp&&<div style={{fontFamily:font,fontSize:7,color:C.textDim}}>{j.comp} {j.rodada||""}</div>}
+                  const jogoKey = `${wd.dateStr}_${j.adv}`;
+                  const isExpanded = expandedJogo === jogoKey;
+                  const jogoPrazos = prazos[jogoKey] || {};
+                  // Merge spreadsheet checks with local toggles
+                  const getCheck = (key) => j[key+"_ok"] || jogoPrazos[key] || false;
+                  const doneCount = PRAZO_LABELS.filter(p => getCheck(p.key)).length;
+                  const totalCount = PRAZO_LABELS.length;
+
+                  return <div key={`j${ji}`} style={{borderRadius: 5, overflow:"hidden", border: `1px solid ${C.red}33`}}>
+                    <div onClick={()=>setExpandedJogo(isExpanded?null:jogoKey)} style={{
+                      background: `${C.red}18`, padding: "5px 6px",
+                      display:"flex", alignItems:"center", gap:5, cursor:"pointer"
+                    }}>
+                      {esc ? <img src={esc} alt="" style={{width:14,height:14,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none"}}/> : <Crosshair size={10} color={C.red}/>}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:font,fontSize:8,color:C.red,fontWeight:700,textTransform:"uppercase",marginBottom:1}}>JOGO</div>
+                        <div style={{fontFamily:font,fontSize:9,color:C.text,fontWeight:600,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.adv}</div>
+                        {j.comp&&<div style={{fontFamily:font,fontSize:7,color:C.textDim}}>{j.comp} {j.rodada||""}</div>}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
+                        <div style={{fontFamily:font,fontSize:8,color:doneCount===totalCount?C.green:C.gold,fontWeight:700}}>{doneCount}/{totalCount}</div>
+                        <ChevronDown size={10} color={C.textDim} style={{transform:isExpanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.15s"}}/>
+                      </div>
                     </div>
+                    {/* Prazo selector grid */}
+                    {isExpanded && <div style={{background:`${C.red}08`,padding:"6px",borderTop:`1px solid ${C.red}22`}}>
+                      <div style={{fontFamily:fontD,fontSize:7,color:C.textDim,marginBottom:4,letterSpacing:"0.1em",textTransform:"uppercase"}}>Prazos Adversário</div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:3}}>
+                        {PRAZO_LABELS.map(p => {
+                          const done = getCheck(p.key);
+                          const fromSheet = j[p.key+"_ok"];
+                          return <div key={p.key} onClick={fromSheet?undefined:()=>togglePrazo(jogoKey,p.key)}
+                            title={p.tip}
+                            style={{
+                              padding:"3px 2px",borderRadius:3,textAlign:"center",
+                              background: done ? `${C.green}25` : `${C.bg}`,
+                              border: `1px solid ${done ? C.green+"55" : C.border}`,
+                              cursor: fromSheet ? "default" : "pointer",
+                              opacity: fromSheet ? 0.85 : 1,
+                              transition:"all 0.15s",
+                            }}>
+                            <div style={{fontFamily:fontD,fontSize:7,color:done?C.green:C.textDim,fontWeight:700,letterSpacing:"0.05em"}}>{p.label}</div>
+                            {done && <CheckCircle size={8} color={C.green} style={{marginTop:1}}/>}
+                            {fromSheet && done && <div style={{fontFamily:font,fontSize:5,color:C.green+"99",marginTop:1}}>SHEET</div>}
+                          </div>;
+                        })}
+                      </div>
+                    </div>}
                   </div>;
                 })}
 
@@ -909,7 +975,6 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
                   </div>
                 )}
 
-                {/* Empty state */}
                 {!hasTreino && !hasJogo && wd.tasks.length === 0 && addingTask !== wd.dateStr && (
                   <div style={{flex:1}}/>
                 )}
