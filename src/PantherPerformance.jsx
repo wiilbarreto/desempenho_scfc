@@ -780,12 +780,15 @@ function PrelecaoPage({videos=[],proxAdv}) {
 // ═══════════════════════════════════════════════
 // PAGE: PARTIDAS
 // ═══════════════════════════════════════════════
-function PartidasPage({videos=[],partidas=[]}) {
+function PartidasPage({videos=[],partidas=[],calendario=[]}) {
+  const escudoMap=Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv,x.escudo]));
+  const sorted=[...partidas].sort((a,b)=>(a.data||"").localeCompare(b.data||""));
   const posVideos = (adv) => videos.filter(v=>v.partida===adv||v.tipo==="jogo_completo"&&(v.titulo||"").toLowerCase().includes(adv.toLowerCase()));
   return <div>
     <SH title="Partidas + Pós-Jogo" count={partidas.length}/>
     {partidas.length===0&&<Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Nenhuma partida carregada. Sincronize com Google Sheets.</div></Card>}
-    {[...partidas].sort((a,b)=>(a.data||"").localeCompare(b.data||"")).map(p=>{
+    {sorted.map((p,idx)=>{
+      const rodNum = idx + 1;
       const matchVideos = posVideos(p.adv);
       const firstVideo = matchVideos.find(v=>v.link||v.linkAlt);
       const videoLink = firstVideo ? (firstVideo.link||firstVideo.linkAlt) : null;
@@ -793,13 +796,13 @@ function PartidasPage({videos=[],partidas=[]}) {
       <Card key={p.id} style={{marginBottom:8,display:"flex",alignItems:"center",gap:14}}>
         <div style={{width:50,textAlign:"center"}}><ResBadge r={p.res}/></div>
         <div style={{fontFamily:fontD,fontSize:22,color:C.text,fontWeight:700,width:55,textAlign:"center"}}>{p.pl}</div>
-        <Escudo src={p.escudo} size={24}/>
+        <Escudo src={p.escudo||escudoMap[p.adv]} size={24}/>
         <div style={{flex:1}}>
           <div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
             {p.mand?"Botafogo-SP":p.adv} vs {p.mand?p.adv:"Botafogo-SP"}
           </div>
           <div style={{fontFamily:font,fontSize:10,color:C.textDim,display:"flex",alignItems:"center",gap:4}}>
-            <CompLogo comp={p.comp} size={12}/>R{p.rod} · {p.data} · {p.form}{p.xg!=null?` · xG ${p.xg.toFixed(2)}`:""}{p.xgC!=null?` / xGA ${p.xgC.toFixed(2)}`:""}{p.comp?` · ${p.comp}`:""}
+            <CompLogo comp={p.comp} size={12}/>R{rodNum} · {p.data} · {p.form}{p.xg!=null?` · xG ${p.xg.toFixed(2)}`:""}{p.xgC!=null?` / xGA ${p.xgC.toFixed(2)}`:""}{p.comp?` · ${p.comp}`:""}
           </div>
         </div>
         <div style={{display:"flex",gap:6}}>
@@ -1862,7 +1865,7 @@ export default function PantherPerformance() {
       case "modelo-jogo": return <ModeloJogoPage/>;
       case "adversario": return <AdversarioPage partidas={partidas} calendario={calendario} proxAdv={proxAdv} checklist={advChecklist} setChecklist={setAdvChecklist} advLinks={advLinks} setAdvLinks={setAdvLinks}/>;
       case "prelecao": return <PrelecaoPage videos={videos} proxAdv={proxAdv}/>;
-      case "partidas": return <PartidasPage videos={videos} partidas={partidas}/>;
+      case "partidas": return <PartidasPage videos={videos} partidas={partidas} calendario={calendario}/>;
       case "bolas-paradas": return <BolasParadasPage/>;
       case "treinos": return <TreinosPage videos={videos} partidas={partidas} calendario={calendario}/>;
       case "atletas": return <AtletasPage nav={nav} individual={individual}/>;
