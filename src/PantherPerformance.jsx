@@ -13,7 +13,7 @@ import {
   BookOpen, Send, Settings, ChevronDown, ChevronUp, Layers,
   Dumbbell, Circle, MapPin, Lock, Clipboard, Package, User,
   CheckSquare, XCircle, Timer, RefreshCw, Sun, Moon, Trash2, Edit3,
-  ExternalLink, Link2,
+  ExternalLink, Link2, Home, Plane, Upload,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════
@@ -600,6 +600,88 @@ const FIXED_CHECKLIST = [
   {label:"Descritivo individual",fixed:true},
 ];
 
+function AdvPdfUpload() {
+  const [file,setFile]=useState(null);
+  const [status,setStatus]=useState(null); // null | "uploading" | "success" | "error"
+  const [result,setResult]=useState(null);
+  const [dragOver,setDragOver]=useState(false);
+
+  const handleFile=(f)=>{
+    if(!f) return;
+    if(!f.name.endsWith(".pdf")){setStatus("error");setResult({message:"Apenas arquivos PDF são aceitos."});return;}
+    setFile(f);setStatus(null);setResult(null);
+  };
+
+  const handleUpload=async()=>{
+    if(!file){return;}
+    setStatus("uploading");setResult(null);
+    try {
+      const formData=new FormData();
+      formData.append("file",file);
+      const API=process.env.REACT_APP_API_URL||"http://localhost:8000";
+      const res=await fetch(`${API}/api/adversario/importar-pdf`,{method:"POST",body:formData});
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.detail||"Erro ao importar");
+      setStatus("success");setResult(data);setFile(null);
+    } catch(err){
+      setStatus("error");setResult({message:err.message||"Erro de conexão com o servidor."});
+    }
+  };
+
+  return <div>
+    <div
+      onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+      onDragLeave={()=>setDragOver(false)}
+      onDrop={e=>{e.preventDefault();setDragOver(false);handleFile(e.dataTransfer.files[0]);}}
+      onClick={()=>document.getElementById("adv-pdf-input").click()}
+      style={{
+        border:`2px dashed ${dragOver?C.blue:C.border}`,borderRadius:8,padding:"24px 16px",textAlign:"center",cursor:"pointer",
+        background:dragOver?`${C.blue}08`:C.bg,transition:"all 0.2s",marginBottom:12
+      }}
+    >
+      <Upload size={28} color={dragOver?C.blue:C.textDim} style={{marginBottom:8}}/>
+      <div style={{fontFamily:font,fontSize:12,color:C.text,fontWeight:600}}>
+        {file?file.name:"Arraste o PDF aqui ou clique para selecionar"}
+      </div>
+      <div style={{fontFamily:font,fontSize:10,color:C.textDim,marginTop:4}}>
+        Relatório de equipe Wyscout (.pdf)
+      </div>
+      <input id="adv-pdf-input" type="file" accept=".pdf" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
+    </div>
+    {file && status!=="uploading" && (
+      <div onClick={handleUpload} style={{cursor:"pointer",background:C.red,borderRadius:6,padding:"8px 16px",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:12}}>
+        <Upload size={14} color="#fff"/>
+        <span style={{fontFamily:font,fontSize:12,color:"#fff",fontWeight:700}}>Importar Relatório</span>
+      </div>
+    )}
+    {status==="uploading" && (
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:6,background:`${C.yellow}11`,border:`1px solid ${C.yellow}33`}}>
+        <RefreshCw size={14} color={C.yellow} style={{animation:"spin 1s linear infinite"}}/>
+        <span style={{fontFamily:font,fontSize:12,color:C.yellow}}>Processando PDF...</span>
+      </div>
+    )}
+    {status==="success" && result && (
+      <div style={{padding:"10px 12px",borderRadius:6,background:`${C.green}11`,border:`1px solid ${C.green}33`,marginBottom:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+          <CheckCircle size={14} color={C.green}/>
+          <span style={{fontFamily:font,fontSize:12,color:C.green,fontWeight:700}}>Importado com sucesso!</span>
+        </div>
+        <div style={{fontFamily:font,fontSize:11,color:C.text}}>
+          <strong>{result.equipe}</strong> — {result.jogadores_importados} jogadores, {result.formacoes_importadas} formações
+        </div>
+      </div>
+    )}
+    {status==="error" && result && (
+      <div style={{padding:"10px 12px",borderRadius:6,background:`${C.red}11`,border:`1px solid ${C.red}33`}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <AlertTriangle size={14} color={C.red}/>
+          <span style={{fontFamily:font,fontSize:12,color:C.red}}>{result.message}</span>
+        </div>
+      </div>
+    )}
+  </div>;
+}
+
 function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklist,advLinks={},setAdvLinks}) {
   const escudoMap=Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv,x.escudo]));
   const [editingIdx,setEditingIdx]=useState(null);
@@ -686,7 +768,7 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
             <Escudo src={c.escudo||escudoMap[c.adv]} size={22}/>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontFamily:font,fontSize:12,color:C.text,fontWeight:600}}>{c.adv}</div>
-              <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>{c.rodada} · {c.data} · {c.local==="C"?"Casa":"Fora"}</div>
+              <div style={{fontFamily:font,fontSize:10,color:C.textDim,display:"flex",alignItems:"center",gap:3}}>{c.rodada} · {c.data} · {c.local==="C"?<><Home size={10} color={C.green}/> Casa</>:<><Plane size={10} color={C.blue}/> Fora</>}</div>
               {link && !isEditing && (
                 <div style={{marginTop:4,display:"flex",alignItems:"center",gap:4}}>
                   <Link2 size={10} color={C.blue}/>
@@ -723,6 +805,15 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
           Nenhum jogo do Brasileiro Série B no calendário ainda. Sincronize com Google Sheets.
         </div>
       )}
+    </Card>
+
+    {/* Upload Relatório Estatístico do Adversário (Wyscout PDF) */}
+    <Card style={{marginBottom:16}}>
+      <SH title="Upload — Relatório Estatístico do Adversário"/>
+      <div style={{fontFamily:font,fontSize:11,color:C.textDim,marginBottom:12}}>
+        Faça upload do PDF do Wyscout (relatório de equipe) para importar automaticamente dados estatísticos, formações, jogadores-chave e transições do adversário.
+      </div>
+      <AdvPdfUpload/>
     </Card>
 
     {/* Análises Anteriores — Paulistão (histórico) */}
