@@ -785,7 +785,7 @@ function PartidasPage({videos=[],partidas=[]}) {
   return <div>
     <SH title="Partidas + Pós-Jogo" count={partidas.length}/>
     {partidas.length===0&&<Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Nenhuma partida carregada. Sincronize com Google Sheets.</div></Card>}
-    {partidas.map(p=>{
+    {[...partidas].sort((a,b)=>(a.data||"").localeCompare(b.data||"")).map(p=>{
       const matchVideos = posVideos(p.adv);
       const firstVideo = matchVideos.find(v=>v.link||v.linkAlt);
       const videoLink = firstVideo ? (firstVideo.link||firstVideo.linkAlt) : null;
