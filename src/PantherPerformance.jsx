@@ -298,9 +298,9 @@ const fontD = "'DM Sans','Inter','Helvetica Neue',sans-serif";
 // LOGOS DE COMPETIÇÃO
 // ═══════════════════════════════════════════════
 const COMP_LOGOS = {
-  "série b": "https://cdn-img.zerozero.pt/img/logos/competicoes/154_imgbank_sb_20250307193556.png",
-  "serie b": "https://cdn-img.zerozero.pt/img/logos/competicoes/154_imgbank_sb_20250307193556.png",
-  "brasileirão série b": "https://cdn-img.zerozero.pt/img/logos/competicoes/154_imgbank_sb_20250307193556.png",
+  "série b": "https://tmssl.akamaized.net//images/logo/header/bra2.png?lm=1731436730",
+  "serie b": "https://tmssl.akamaized.net//images/logo/header/bra2.png?lm=1731436730",
+  "brasileirão série b": "https://tmssl.akamaized.net//images/logo/header/bra2.png?lm=1731436730",
   "paulistão": "https://upload.wikimedia.org/wikipedia/pt/1/1c/Paulistão_2026.png",
   "paulistao": "https://upload.wikimedia.org/wikipedia/pt/1/1c/Paulistão_2026.png",
   "campeonato paulista": "https://upload.wikimedia.org/wikipedia/pt/1/1c/Paulistão_2026.png",
@@ -317,6 +317,53 @@ function CompLogo({comp, size=14, style={}}) {
   const logo = getCompLogo(comp);
   if (!logo) return null;
   return <img src={logo} alt="" style={{width:size,height:size,objectFit:"contain",verticalAlign:"middle",...style}} onError={e=>{e.target.style.display="none"}}/>;
+}
+
+// ═══════════════════════════════════════════════
+// ESCUDOS FALLBACK (quando Google Sheets não tem)
+// ═══════════════════════════════════════════════
+const ESCUDO_FALLBACK = {
+  "primavera sp": "https://tmssl.akamaized.net/images/wappen/head/40095.png",
+  "primavera": "https://tmssl.akamaized.net/images/wappen/head/40095.png",
+  "grêmio novorizontino": "https://tmssl.akamaized.net/images/wappen/head/20718.png",
+  "novorizontino": "https://tmssl.akamaized.net/images/wappen/head/20718.png",
+  "capivariano": "https://tmssl.akamaized.net/images/wappen/head/36498.png",
+  "velo clube": "https://tmssl.akamaized.net/images/wappen/head/24498.png",
+  "noroeste": "https://tmssl.akamaized.net/images/wappen/head/14920.png",
+  "red bull bragantino": "https://tmssl.akamaized.net/images/wappen/head/8793.png",
+  "rb bragantino": "https://tmssl.akamaized.net/images/wappen/head/8793.png",
+  "bragantino": "https://tmssl.akamaized.net/images/wappen/head/8793.png",
+  "palmeiras": "https://tmssl.akamaized.net/images/wappen/head/1023.png",
+  "guarani": "https://tmssl.akamaized.net/images/wappen/head/3442.png",
+  "fortaleza": "https://tmssl.akamaized.net/images/wappen/head/10531.png",
+  "américa-mg": "https://tmssl.akamaized.net/images/wappen/head/2860.png",
+  "america-mg": "https://tmssl.akamaized.net/images/wappen/head/2860.png",
+  "são bernardo": "https://tmssl.akamaized.net/images/wappen/head/40071.png",
+  "criciúma": "https://tmssl.akamaized.net/images/wappen/head/4857.png",
+  "atlético-go": "https://tmssl.akamaized.net/images/wappen/head/15172.png",
+  "cuiabá": "https://tmssl.akamaized.net/images/wappen/head/28022.png",
+  "náutico": "https://tmssl.akamaized.net/images/wappen/head/4110.png",
+  "goiás": "https://tmssl.akamaized.net/images/wappen/head/2020.png",
+  "athletic": "https://tmssl.akamaized.net/images/wappen/head/67617.png",
+  "ponte preta": "https://tmssl.akamaized.net/images/wappen/head/4105.png",
+  "vila nova-go": "https://tmssl.akamaized.net/images/wappen/head/15171.png",
+  "vila nova": "https://tmssl.akamaized.net/images/wappen/head/15171.png",
+  "operário-pr": "https://tmssl.akamaized.net/images/wappen/head/15178.png",
+  "operário": "https://tmssl.akamaized.net/images/wappen/head/15178.png",
+  "ceará": "https://tmssl.akamaized.net/images/wappen/head/11777.png",
+  "crb": "https://tmssl.akamaized.net/images/wappen/head/11543.png",
+  "avaí": "https://tmssl.akamaized.net/images/wappen/head/4103.png",
+  "sport": "https://tmssl.akamaized.net/images/wappen/head/2462.png",
+  "londrina": "https://tmssl.akamaized.net/images/wappen/head/18498.png",
+  "juventude": "https://tmssl.akamaized.net/images/wappen/head/10492.png",
+};
+function getFallbackEscudo(advName) {
+  if (!advName) return "";
+  const n = advName.toLowerCase().trim();
+  for (const [key, url] of Object.entries(ESCUDO_FALLBACK)) {
+    if (n.includes(key) || key.includes(n)) return url;
+  }
+  return "";
 }
 
 // ═══════════════════════════════════════════════
@@ -388,9 +435,12 @@ const ResBadge = ({r}) => {
   const m={V:{c:C.green,bg:C.greenDim},D:{c:C.red,bg:C.redDim},E:{c:C.yellow,bg:C.yellowDim}};
   const x=m[r]||m.E; return <Badge color={x.c} bg={x.bg}>{r}</Badge>;
 };
-const Escudo = ({src,size=20}) => src ? (
-  <img src={src} alt="" style={{width:size,height:size,objectFit:"contain",borderRadius:2,flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>
-) : null;
+const Escudo = ({src,size=20,adv=""}) => {
+  const url = src || getFallbackEscudo(adv);
+  return url ? (
+    <img src={url} alt="" style={{width:size,height:size,objectFit:"contain",borderRadius:2,flexShrink:0}} onError={e=>{e.target.style.display="none"}}/>
+  ) : null;
+};
 const PlatBadge = ({p}) => {
   const m={youtube:"#FF0000",vimeo:"#1AB7EA",google_drive:"#0F9D58",wyscout:"#FF6B00",instat:"#6366f1"};
   return <Badge color={m[p]||C.textDim}>{p.replace("_"," ")}</Badge>;
@@ -464,7 +514,7 @@ function DashboardPage({nav,tarefas=[],videos=[],partidas=[],proxAdv,individual=
         <SH title="Próximo Adversário"/>
         <div style={{display:"flex",alignItems:"center",gap:16}}>
           <div style={{width:56,height:56,borderRadius:"50%",background:`${C.red}22`,display:"flex",alignItems:"center",justifyContent:"center",border:`2px solid ${C.red}44`,overflow:"hidden"}}>
-            {proxAdv.escudo?<img src={proxAdv.escudo} alt={proxAdv.nome} style={{width:38,height:38,objectFit:"contain"}}/>:<Crosshair size={24} color={C.red}/>}
+            {(proxAdv.escudo||getFallbackEscudo(proxAdv.nome))?<img src={proxAdv.escudo||getFallbackEscudo(proxAdv.nome)} alt={proxAdv.nome} style={{width:38,height:38,objectFit:"contain"}} onError={e=>{e.target.style.display="none"}}/>:<Crosshair size={24} color={C.red}/>}
           </div>
           <div style={{flex:1}}>
             <div style={{fontFamily:fontD,fontSize:22,color:C.text,fontWeight:700}}>{proxAdv.nome}</div>
@@ -627,7 +677,7 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
       <SH title="Em Andamento — Próximo Jogo"/>
       <div style={{display:"flex",alignItems:"center",gap:20}}>
         <div style={{width:64,height:64,borderRadius:"50%",background:`${C.red}22`,display:"flex",alignItems:"center",justifyContent:"center",border:`2px solid ${C.red}44`,overflow:"hidden"}}>
-          {proxAdv.escudo?<img src={proxAdv.escudo} alt={proxAdv.nome} style={{width:44,height:44,objectFit:"contain"}}/>:<Crosshair size={28} color={C.red}/>}
+          {(proxAdv.escudo||getFallbackEscudo(proxAdv.nome))?<img src={proxAdv.escudo||getFallbackEscudo(proxAdv.nome)} alt={proxAdv.nome} style={{width:44,height:44,objectFit:"contain"}} onError={e=>{e.target.style.display="none"}}/>:<Crosshair size={28} color={C.red}/>}
         </div>
         <div style={{flex:1}}>
           <div style={{fontFamily:fontD,fontSize:26,color:C.text,fontWeight:700}}>{proxAdv.nome}</div>
@@ -666,12 +716,15 @@ function AdversarioPage({partidas=[],calendario=[],proxAdv,checklist,setChecklis
       </div>
     </Card>
     <Card>
-      <div style={{display:"flex",alignItems:"center",gap:6}}><SH title="Análises Anteriores — Paulistão"/><CompLogo comp="Paulistão" size={18}/></div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+        <CompLogo comp="Paulistão" size={22}/>
+        <SH title="Análises Anteriores — Paulistão"/>
+      </div>
       {partidas.filter(p=>p.adversarioDone).map(p=>(
         <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:4,marginBottom:4,border:`1px solid ${C.border}`}}>
           <ResBadge r={p.res}/>
           <span style={{fontFamily:fontD,fontSize:16,color:C.text,fontWeight:700,width:50,textAlign:"center"}}>{p.pl}</span>
-          <Escudo src={p.escudo||escudoMap[p.adv]} size={22}/>
+          <Escudo src={p.escudo||escudoMap[p.adv]} size={22} adv={p.adv}/>
           <div style={{flex:1}}>
             <span style={{fontFamily:font,fontSize:12,color:C.text}}>vs {p.adv}</span>
             <span style={{fontFamily:font,fontSize:10,color:C.textDim,marginLeft:8}}>R{p.rod} · {p.data}</span>
@@ -692,9 +745,11 @@ function PrelecaoPage({videos=[],proxAdv}) {
     {proxAdv ? <Card style={{marginBottom:16,backgroundImage:`linear-gradient(135deg,${C.purpleDim} 0%,transparent 50%)`}}>
       <SH title="Próxima Preleção"/>
       <div style={{display:"flex",alignItems:"center",gap:16}}>
-        <div style={{width:48,height:48,borderRadius:6,background:`${C.purple}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><FileText size={22} color={C.purple}/></div>
+        <div style={{width:48,height:48,borderRadius:6,background:`${C.purple}22`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+          {proxAdv.escudo||getFallbackEscudo(proxAdv.nome)?<img src={proxAdv.escudo||getFallbackEscudo(proxAdv.nome)} alt={proxAdv.nome} style={{width:34,height:34,objectFit:"contain"}} onError={e=>{e.target.style.display="none";e.target.parentElement.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>';}}/>:<FileText size={22} color={C.purple}/>}
+        </div>
         <div style={{flex:1}}>
-          <div style={{fontFamily:fontD,fontSize:20,color:C.text}}>vs {proxAdv.nome} — {proxAdv.data}</div>
+          <div style={{fontFamily:fontD,fontSize:20,color:C.text,display:"flex",alignItems:"center",gap:8}}>vs {proxAdv.nome} — {proxAdv.data} <CompLogo comp={proxAdv.comp} size={18}/></div>
           <div style={{fontFamily:font,fontSize:11,color:C.textDim}}>Depende da análise de adversário ({proxAdv.progresso}% concluída)</div>
         </div>
         <Badge color={proxAdv.progresso>=80?C.yellow:C.textDim}>{proxAdv.progresso>=80?"PRONTO P/ MONTAR":"AGUARDANDO ANÁLISE"}</Badge>
@@ -715,24 +770,37 @@ function PrelecaoPage({videos=[],proxAdv}) {
 // PAGE: PARTIDAS
 // ═══════════════════════════════════════════════
 function PartidasPage({videos=[],partidas=[]}) {
+  const posVideos = (adv) => videos.filter(v=>v.partida===adv||v.tipo==="jogo_completo"&&(v.titulo||"").toLowerCase().includes(adv.toLowerCase()));
   return <div>
     <SH title="Partidas + Pós-Jogo" count={partidas.length}/>
     {partidas.length===0&&<Card><div style={{fontFamily:font,fontSize:12,color:C.textDim,padding:20,textAlign:"center"}}>Nenhuma partida carregada. Sincronize com Google Sheets.</div></Card>}
-    {partidas.map(p=>(
+    {partidas.map(p=>{
+      const matchVideos = posVideos(p.adv);
+      const firstVideo = matchVideos.find(v=>v.link||v.linkAlt);
+      const videoLink = firstVideo ? (firstVideo.link||firstVideo.linkAlt) : null;
+      return (
       <Card key={p.id} style={{marginBottom:8,display:"flex",alignItems:"center",gap:14}}>
         <div style={{width:50,textAlign:"center"}}><ResBadge r={p.res}/></div>
         <div style={{fontFamily:fontD,fontSize:22,color:C.text,fontWeight:700,width:55,textAlign:"center"}}>{p.pl}</div>
-        <Escudo src={p.escudo} size={24}/>
+        <Escudo src={p.escudo} size={24} adv={p.adv}/>
         <div style={{flex:1}}>
-          <div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:600}}>{p.mand?"Botafogo-SP":p.adv} vs {p.mand?p.adv:"Botafogo-SP"}</div>
-          <div style={{fontFamily:font,fontSize:10,color:C.textDim}}>R{p.rod} · {p.data} · {p.form}{p.xg!=null?` · xG ${p.xg.toFixed(2)}`:""}{p.xgC!=null?` / xGA ${p.xgC.toFixed(2)}`:""}</div>
+          <div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+            {p.mand?"Botafogo-SP":p.adv} vs {p.mand?p.adv:"Botafogo-SP"}
+          </div>
+          <div style={{fontFamily:font,fontSize:10,color:C.textDim,display:"flex",alignItems:"center",gap:4}}>
+            <CompLogo comp={p.comp} size={12}/>R{p.rod} · {p.data} · {p.form}{p.xg!=null?` · xG ${p.xg.toFixed(2)}`:""}{p.xgC!=null?` / xGA ${p.xgC.toFixed(2)}`:""}{p.comp?` · ${p.comp}`:""}
+          </div>
         </div>
         <div style={{display:"flex",gap:6}}>
-          <Badge color={p.posJogoDone?C.green:C.yellow}>{p.posJogoDone?"PÓS ✓":"PENDENTE"}</Badge>
-          <Badge color={C.blue}><Video size={9}/> {videos.filter(v=>v.partida===p.adv).length}</Badge>
+          <span onClick={videoLink?()=>window.open(videoLink,"_blank"):undefined} style={{cursor:videoLink?"pointer":"default"}} title={videoLink?"Abrir vídeo pós-jogo":""}>
+            <Badge color={p.posJogoDone?C.green:C.yellow}>{p.posJogoDone?"PÓS ✓":"PENDENTE"}</Badge>
+          </span>
+          <span onClick={videoLink?()=>window.open(videoLink,"_blank"):undefined} style={{cursor:videoLink?"pointer":"default"}} title={videoLink?"Abrir vídeo":""}>
+            <Badge color={C.blue}><Video size={9}/> {matchVideos.length}</Badge>
+          </span>
         </div>
       </Card>
-    ))}
+    );})}
   </div>;
 }
 
@@ -907,7 +975,7 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
               <div style={{display:"flex",flexDirection:"column",gap:4,flex:1}}>
                 {/* Jogos with prazo selectors */}
                 {wd.jogos.map((j, ji) => {
-                  const esc = escudoMap[j.adv?.toLowerCase()] || "";
+                  const esc = escudoMap[j.adv?.toLowerCase()] || getFallbackEscudo(j.adv) || "";
                   const jogoKey = `${wd.dateStr}_${j.adv}`;
                   const isExpanded = expandedJogo === jogoKey;
                   const jogoPrazos = prazos[jogoKey] || {};
@@ -1436,7 +1504,7 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
         const colors = thumbColors[v.tipo] || ["#2a2a3e","#3a3a4e"];
         const advName = v.partida || v.titulo || "";
         const BFSA_ESCUDO = "/3154_imgbank_1685113109.png";
-        const advEscudo = escudoMap[advName.toLowerCase()] || Object.entries(escudoMap).find(([k])=>advName.toLowerCase().includes(k))?.[1] || "";
+        const advEscudo = escudoMap[advName.toLowerCase()] || Object.entries(escudoMap).find(([k])=>advName.toLowerCase().includes(k))?.[1] || getFallbackEscudo(advName) || "";
         const escudo = advEscudo || BFSA_ESCUDO;
         return <div key={v.id} onClick={videoLink?()=>window.open(videoLink,"_blank"):undefined} style={{
           background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",
