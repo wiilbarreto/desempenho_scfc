@@ -824,7 +824,15 @@ function TreinosPage({videos=[],partidas=[],calendario=[]}) {
   };
   addWeek(new Date());
   allDates.forEach(ds => { const d = parseDateBR(ds); if (d) addWeek(d); });
-  weekOrder.sort((a, b) => b.localeCompare(a));
+  // Sort: current week first, then future weeks ascending, then past weeks descending
+  const currentWk = getWeekStart(new Date()).toISOString().slice(0,10);
+  weekOrder.sort((a, b) => {
+    const aFuture = a >= currentWk;
+    const bFuture = b >= currentWk;
+    if (aFuture && bFuture) return a.localeCompare(b); // both future/current: ascending
+    if (!aFuture && !bFuture) return b.localeCompare(a); // both past: descending (recent first)
+    return aFuture ? -1 : 1; // future before past
+  });
 
   const diasSemana = ["SEG","TER","QUA","QUI","SEX","SÁB","DOM"];
   const escudoMap = Object.fromEntries([...partidas,...calendario].filter(x=>x.escudo).map(x=>[x.adv?.toLowerCase(),x.escudo]));
