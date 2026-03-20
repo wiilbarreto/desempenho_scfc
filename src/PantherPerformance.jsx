@@ -19,7 +19,7 @@ import {
 // ═══════════════════════════════════════════════
 // GOOGLE SHEETS CSV PARSER — Live data fetch
 // ═══════════════════════════════════════════════
-const SHEETS_CSV_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThRhCTfsLmX3ftpF-0m2UwZeDNBWjn5TxnDCBB3i5W82bh1dNW8m-sbORNTX5FBA/pub?output=csv";
+const SHEETS_CSV_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc74viAa9e3hBoS6HqM7wU4iOM9jq4Jt9JoJvdNH8ahKIQr_3dcdFj9NbXIeYFQw/pub?output=csv";
 const GID = { cadastro:2058075615, coletivo:1880381548, individual:2098013514, videos:789793586, calendario:429987536 };
 
 function parseCSV(text) {
@@ -62,7 +62,7 @@ function parseCSV(text) {
     }
   }
   const headers = splitLine(lines[headerIdx]).map(h => h.replace(/^"|"$/g, ""));
-  console.log("[BFSA parseCSV]", { sep, headerIdx, headers, lineCount: lines.length });
+  console.log("[SCFC parseCSV]", { sep, headerIdx, headers, lineCount: lines.length });
   return lines.slice(headerIdx + 1).map(line => {
     const vals = splitLine(line);
     const obj = {};
@@ -102,11 +102,11 @@ async function fetchSheet(gid) {
   if (!res.ok) throw new Error(`Sheet ${gid}: ${res.status}`);
   const text = await res.text();
   if (text.trim().startsWith("<!") || text.trim().startsWith("<html")) {
-    console.warn(`[BFSA] Sheet ${gid} returned HTML instead of CSV. Check if the spreadsheet is published.`);
+    console.warn(`[SCFC] Sheet ${gid} returned HTML instead of CSV. Check if the spreadsheet is published.`);
     return [];
   }
   const rows = parseCSV(text);
-  if (rows.length === 0) console.warn(`[BFSA] Sheet ${gid}: 0 rows parsed. First 200 chars:`, text.substring(0, 200));
+  if (rows.length === 0) console.warn(`[SCFC] Sheet ${gid}: 0 rows parsed. First 200 chars:`, text.substring(0, 200));
   return rows;
 }
 
@@ -136,7 +136,7 @@ function mapColetivo(rows) {
 
 function mapIndividual(rows) {
   if (rows.length > 0) {
-    console.log("[BFSA mapIndividual] Sample row keys:", Object.keys(rows[0]), "Sample values:", JSON.stringify(rows[0]).slice(0, 500));
+    console.log("[SCFC mapIndividual] Sample row keys:", Object.keys(rows[0]), "Sample values:", JSON.stringify(rows[0]).slice(0, 500));
   }
   return rows.filter(r => (r.Atleta || r.atleta || findCol(r, "Atleta", "atleta", "Player", "Jogador") || "").trim()).map((r, i) => ({
     id: i + 1,
@@ -172,7 +172,7 @@ function mapCalendario(rows) {
 function getLink(r) { return findCol(r,"Link Vídeo","Link Video","Link vídeo","Link","URL") || ""; }
 function getLinkAlt(r) { return findCol(r,"Link Alternativo","Link Alt") || ""; }
 function mapVideos(rows) {
-  if(rows.length>0) console.log("[BFSA mapVideos] headers:", Object.keys(rows[0]), "sample row[0]:", rows[0]);
+  if(rows.length>0) console.log("[SCFC mapVideos] headers:", Object.keys(rows[0]), "sample row[0]:", rows[0]);
   const mapped = rows.filter(r => getLink(r).trim()).map((r, i) => {
     const desc = findCol(r,"Adversário/Descrição","Adversario/Descricao","Título","Titulo") || "";
     const comp = findCol(r,"Comp","comp","Competição","competição","Competicao") || "";
@@ -207,7 +207,7 @@ function mapVideos(rows) {
       responsavel: findCol(r,"Responsável","Responsavel") || "",
     };
   });
-  console.log("[BFSA mapVideos] total rows:", rows.length, "with link:", mapped.length, "types:", mapped.reduce((a,v)=>{a[v.tipo]=(a[v.tipo]||0)+1;return a},{}));
+  console.log("[SCFC mapVideos] total rows:", rows.length, "with link:", mapped.length, "types:", mapped.reduce((a,v)=>{a[v.tipo]=(a[v.tipo]||0)+1;return a},{}));
   return mapped;
 }
 
@@ -230,12 +230,12 @@ function useSheets() {
       const c = mapCalendario(calRows);
       const v = mapVideos(vidRows);
       const ind = mapIndividual(indRows);
-      console.log("[BFSA Sync]", {rawRows:{col:colRows.length,cal:calRows.length,vid:vidRows.length,ind:indRows.length}, mapped:{p:p.length,c:c.length,v:v.length,ind:ind.length}, colHeaders: colRows[0] && Object.keys(colRows[0]), indHeaders: indRows[0] && Object.keys(indRows[0])});
+      console.log("[SCFC Sync]", {rawRows:{col:colRows.length,cal:calRows.length,vid:vidRows.length,ind:indRows.length}, mapped:{p:p.length,c:c.length,v:v.length,ind:ind.length}, colHeaders: colRows[0] && Object.keys(colRows[0]), indHeaders: indRows[0] && Object.keys(indRows[0])});
       if (ind.length > 0) {
         const sample = ind[0];
         const nullFields = Object.entries(sample).filter(([,v]) => v === null || v === "").map(([k]) => k);
         const okFields = Object.entries(sample).filter(([,v]) => v !== null && v !== "").map(([k]) => k);
-        console.log("[BFSA mapIndividual] Fields OK:", okFields, "| Fields NULL:", nullFields);
+        console.log("[SCFC mapIndividual] Fields OK:", okFields, "| Fields NULL:", nullFields);
       }
       if (p.length > 0) setLivePartidas(p);
       if (c.length > 0) setLiveCalendario(c);
@@ -246,7 +246,7 @@ function useSheets() {
         setError("CSV carregado mas headers não bateram. Veja console (F12).");
       }
       setLastSync(new Date().toLocaleTimeString("pt-BR"));
-    } catch (e) { console.error("[BFSA Sync Error]", e); setError(e.message); }
+    } catch (e) { console.error("[SCFC Sync Error]", e); setError(e.message); }
     finally { setLoading(false); }
   }, []);
 
@@ -256,7 +256,7 @@ function useSheets() {
 // ═══════════════════════════════════════════════
 // DESIGN SYSTEM
 // ═══════════════════════════════════════════════
-// Botafogo SP identity: preto + vermelho + branco
+// Santa Cruz SP identity: preto + vermelho + branco
 const CDark = {
   bg: "#0a0a0e", bgCard: "rgba(18,18,24,0.65)", bgCardHover: "rgba(26,26,34,0.75)",
   bgInput: "rgba(12,12,18,0.8)", bgSidebar: "rgba(10,10,14,0.92)",
@@ -321,7 +321,7 @@ function CompLogo({comp, size=14, style={}}) {
 }
 
 // ═══════════════════════════════════════════════
-// DATA — Paulistão 2026 (Wyscout real) + contexto BFSA
+// DATA — Paulistão 2026 (Wyscout real) + contexto SCFC
 // ═══════════════════════════════════════════════
 const PB = "https://raw.githubusercontent.com/caiofelipead/performance_dashboard/main/public/players/";
 const ATLETAS = [
@@ -799,7 +799,7 @@ function PartidasPage({videos=[],partidas=[],calendario=[]}) {
         <Escudo src={p.escudo||escudoMap[p.adv]} size={24}/>
         <div style={{flex:1}}>
           <div style={{fontFamily:font,fontSize:13,color:C.text,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
-            {p.mand?"Botafogo-SP":p.adv} vs {p.mand?p.adv:"Botafogo-SP"}
+            {p.mand?"Santa Cruz-SP":p.adv} vs {p.mand?p.adv:"Santa Cruz-SP"}
           </div>
           <div style={{fontFamily:font,fontSize:10,color:C.textDim,display:"flex",alignItems:"center",gap:4}}>
             <CompLogo comp={p.comp} size={12}/>R{rodNum} · {p.data} · {p.form}{p.xg!=null?` · xG ${p.xg.toFixed(2)}`:""}{p.xgC!=null?` / xGA ${p.xgC.toFixed(2)}`:""}{p.comp?` · ${p.comp}`:""}
@@ -1517,9 +1517,9 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
         const videoLink = v.link || v.linkAlt || "";
         const colors = thumbColors[v.tipo] || ["#2a2a3e","#3a3a4e"];
         const advName = v.partida || v.titulo || "";
-        const BFSA_ESCUDO = "/3154_imgbank_1685113109.png";
+        const SCFC_ESCUDO = "/2253_imgbank_1683641104.png";
         const advEscudo = escudoMap[advName.toLowerCase()] || Object.entries(escudoMap).find(([k])=>advName.toLowerCase().includes(k))?.[1] || "";
-        const escudo = advEscudo || BFSA_ESCUDO;
+        const escudo = advEscudo || SCFC_ESCUDO;
         return <div key={v.id} onClick={videoLink?()=>window.open(videoLink,"_blank"):undefined} style={{
           background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",
           cursor:videoLink?"pointer":"default",transition:"all 0.2s ease",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"
@@ -1532,7 +1532,7 @@ function VideosPage({videos=[],athleteMode=false,athleteInfo=null,partidas=[],ca
             {/* Decorative pattern */}
             <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%)"}}/>
             <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"radial-gradient(circle at 20% 80%, rgba(255,255,255,0.05) 0%, transparent 40%)"}}/>
-            {/* Escudo do adversário ou Botafogo */}
+            {/* Escudo do adversário ou Santa Cruz */}
             <img src={escudo} alt="" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:64,height:64,objectFit:"contain",opacity:0.15,filter:"brightness(2)"}} onError={e=>{e.target.style.display="none"}}/>
             {/* Stripe accent */}
             <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:`linear-gradient(90deg, ${C.gold}, ${colors[0]})`}}/>
@@ -1722,8 +1722,8 @@ function LoginPage({ onLogin }) {
         position:"relative",zIndex:1
       }}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <img src="/3154_imgbank_1685113109.png" alt="Botafogo FC" style={{width:64,height:64,objectFit:"contain",marginBottom:12}} onError={e=>{e.target.style.display="none"}}/>
-          <div style={{fontFamily:fontD,fontSize:22,fontWeight:700,color:"#d4232b",textTransform:"uppercase",letterSpacing:"0.12em"}}>BFSA</div>
+          <img src="/2253_imgbank_1683641104.png" alt="Santa Cruz FC" style={{width:64,height:64,objectFit:"contain",marginBottom:12}} onError={e=>{e.target.style.display="none"}}/>
+          <div style={{fontFamily:fontD,fontSize:22,fontWeight:700,color:"#d4232b",textTransform:"uppercase",letterSpacing:"0.12em"}}>SCFC</div>
           <div style={{fontFamily:font,fontSize:10,color:"#5a6070",textTransform:"uppercase",letterSpacing:"0.15em",marginTop:2}}>Análise de Desempenho</div>
         </div>
 
@@ -1797,7 +1797,7 @@ function LoginPage({ onLogin }) {
   );
 }
 
-export default function PantherPerformance() {
+export default function Santa CruzPerformance() {
   const [authedUser,setAuthedUser]=useState(()=>sessionStorage.getItem("bfsa_user")||null);
   const isAthlete = authedUser && isAthleteUser(authedUser);
   const athleteData = authedUser ? getAthleteData(authedUser) : null;
@@ -1893,9 +1893,9 @@ export default function PantherPerformance() {
       {/* ATHLETE HEADER */}
       <div style={{background:C.bgSidebar,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`1px solid ${C.border}`,padding:"12px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <img src="/3154_imgbank_1685113109.png" alt="Botafogo FC" style={{width:32,height:32,objectFit:"contain"}} onError={e=>{e.target.style.display="none"}}/>
+          <img src="/2253_imgbank_1683641104.png" alt="Santa Cruz FC" style={{width:32,height:32,objectFit:"contain"}} onError={e=>{e.target.style.display="none"}}/>
           <div>
-            <div style={{fontFamily:fontD,fontSize:15,fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.12em",lineHeight:1}}>BFSA</div>
+            <div style={{fontFamily:fontD,fontSize:15,fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.12em",lineHeight:1}}>SCFC</div>
             <div style={{fontFamily:font,fontSize:8,color:C.textDim,textTransform:"uppercase",letterSpacing:"0.15em"}}>Portal do Atleta</div>
           </div>
         </div>
@@ -1951,9 +1951,9 @@ export default function PantherPerformance() {
       {/* SIDEBAR */}
       <div style={{width:210,minHeight:"100vh",background:C.bgSidebar,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,bottom:0,zIndex:10,overflowY:"auto",transition:"background 0.3s ease, border-color 0.3s ease"}}>
         <div style={{padding:"16px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
-          <img src="/3154_imgbank_1685113109.png" alt="Botafogo FC" style={{width:36,height:36,objectFit:"contain"}} onError={e=>{e.target.style.display="none"}}/>
+          <img src="/2253_imgbank_1683641104.png" alt="Santa Cruz FC" style={{width:36,height:36,objectFit:"contain"}} onError={e=>{e.target.style.display="none"}}/>
           <div>
-            <div style={{fontFamily:fontD,fontSize:16,fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.12em",lineHeight:1}}>BFSA</div>
+            <div style={{fontFamily:fontD,fontSize:16,fontWeight:700,color:C.gold,textTransform:"uppercase",letterSpacing:"0.12em",lineHeight:1}}>SCFC</div>
             <div style={{fontFamily:font,fontSize:8,color:C.textDim,textTransform:"uppercase",letterSpacing:"0.15em"}}>Análise de Desempenho</div>
           </div>
         </div>
