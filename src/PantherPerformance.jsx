@@ -1679,6 +1679,7 @@ ATLETAS.forEach(a => { ATHLETE_LOGINS[normalizeLogin(a.nome)] = a; });
 
 const AUTH_USERS = {
   adscfc: "scfc1914",
+  adscfc: "scfc1914",
   ...Object.keys(ATHLETE_LOGINS).reduce((acc, k) => { acc[k] = "atleta"; return acc; }, {}),
 };
 const isAthleteUser = (u) => !!ATHLETE_LOGINS[u];
