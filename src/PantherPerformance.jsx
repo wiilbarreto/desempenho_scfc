@@ -323,6 +323,7 @@ function CompLogo({comp, size=14, style={}}) {
 // ═══════════════════════════════════════════════
 // DATA — Paulistão 2026 (Wyscout real) + contexto SCFC
 // ═══════════════════════════════════════════════
+const PB = "https://raw.githubusercontent.com/caiofelipead/performance_dashboard/main/public/players/";
 const ATLETAS = [
   { id:1,nome:"Victor Souza",pos:"Goleiro",num:1,status:"ativo",foto:`${PB}VICTOR%20SOUZA.png`,videos:"",tend:"estavel",cat:"profissional" },
   { id:2,nome:"Jonathan Lemos",pos:"Lateral Direito",num:2,status:"ativo",foto:`${PB}JONATHAN.png`,videos:"",tend:"estavel",cat:"profissional" },
@@ -1678,7 +1679,6 @@ const ATHLETE_LOGINS = {};
 ATLETAS.forEach(a => { ATHLETE_LOGINS[normalizeLogin(a.nome)] = a; });
 
 const AUTH_USERS = {
-  adscfc: "scfc1914",
   adscfc: "scfc1914",
   ...Object.keys(ATHLETE_LOGINS).reduce((acc, k) => { acc[k] = "atleta"; return acc; }, {}),
 };
