@@ -324,7 +324,6 @@ function CompLogo({comp, size=14, style={}}) {
 // DATA — Paulistão 2026 (Wyscout real) + contexto SCFC
 // ═══════════════════════════════════════════════
 const PB = "https://raw.githubusercontent.com/caiofelipead/performance_dashboard/main/public/players/";
-const PB = "https://raw.githubusercontent.com/caiofelipead/performance_dashboard/main/public/players/";
 const ATLETAS = [
   { id:1,nome:"Victor Souza",pos:"Goleiro",num:1,status:"ativo",foto:`${PB}VICTOR%20SOUZA.png`,videos:"",tend:"estavel",cat:"profissional" },
   { id:2,nome:"Jonathan Lemos",pos:"Lateral Direito",num:2,status:"ativo",foto:`${PB}JONATHAN.png`,videos:"",tend:"estavel",cat:"profissional" },
