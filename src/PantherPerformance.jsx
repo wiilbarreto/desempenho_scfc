@@ -1797,7 +1797,7 @@ function LoginPage({ onLogin }) {
   );
 }
 
-export default function Santa CruzPerformance() {
+export default function SantaCruzPerformance() {
   const [authedUser,setAuthedUser]=useState(()=>sessionStorage.getItem("bfsa_user")||null);
   const isAthlete = authedUser && isAthleteUser(authedUser);
   const athleteData = authedUser ? getAthleteData(authedUser) : null;
